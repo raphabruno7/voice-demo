@@ -20,7 +20,7 @@ export default function Home() {
           Live Demo · Disponível agora
         </Badge>
 
-        <h1 className="text-4xl sm:text-5xl font-bold text-white leading-tight">
+        <h1 className="text-4xl sm:text-5xl font-bold text-white leading-tight uppercase tracking-wide">
           Fala com um Agente de IA —{" "}
           <span className="text-emerald-400">ao vivo, agora</span>
         </h1>
