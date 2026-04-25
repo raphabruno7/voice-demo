@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import CallStats from "@/components/CallStats";
 import PhoneNumber from "@/components/PhoneNumber";
 import CallMeForm from "@/components/CallMeForm";
+import QRCodeImage from "@/components/QRCode";
 
 const PHONE_NUMBER = process.env.NEXT_PUBLIC_PHONE_NUMBER ?? "+351 000 000 000";
 
@@ -40,7 +41,10 @@ export default function Home() {
           .
         </p>
 
-        <PhoneNumber number={PHONE_NUMBER} />
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-8 mt-8">
+          <PhoneNumber number={PHONE_NUMBER} />
+          <QRCodeImage phoneNumber={PHONE_NUMBER} />
+        </div>
 
         <p className="mt-4 text-zinc-500 text-sm">
           Powered by Vapi · Groq · Llama 3.3
