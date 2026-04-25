@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 import { Badge } from "@/components/ui/badge";
 import CallStats from "@/components/CallStats";
 import PhoneNumber from "@/components/PhoneNumber";
+import CallMeForm from "@/components/CallMeForm";
 
 const PHONE_NUMBER = process.env.NEXT_PUBLIC_PHONE_NUMBER ?? "+351 000 000 000";
 
@@ -42,8 +43,10 @@ export default function Home() {
         <PhoneNumber number={PHONE_NUMBER} />
 
         <p className="mt-4 text-zinc-500 text-sm">
-          Powered by Vapi · Groq · Llama 3.3 · Twilio
+          Powered by Vapi · Groq · Llama 3.3
         </p>
+
+        <CallMeForm />
 
         <Suspense fallback={null}>
           <CallStats />
