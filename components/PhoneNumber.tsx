@@ -20,7 +20,7 @@ export default function PhoneNumber({ number }: PhoneNumberProps) {
     <div className="flex flex-col items-center gap-4 mt-8">
       <a
         href={`tel:${number.replace(/\s/g, "")}`}
-        className="text-5xl font-bold tracking-widest text-white hover:text-emerald-400 transition-colors"
+        className="text-3xl font-bold tracking-widest text-white hover:text-emerald-400 transition-colors"
       >
         {number}
       </a>
