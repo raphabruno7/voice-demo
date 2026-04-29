@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { detectLanguage, type VapiEvent } from "@/lib/vapi";
+import { detectLanguage, extractIntent, type VapiEvent } from "@/lib/vapi";
 
 export async function POST(req: NextRequest) {
   const secret = req.headers.get("x-vapi-secret");
@@ -16,12 +16,14 @@ export async function POST(req: NextRequest) {
     await supabaseAdmin.from("calls").insert({
       call_id: call.id,
       started_at: call.startedAt,
+      caller_number: call.customer?.number ?? null,
     });
   }
 
   if (type === "end-of-call-report") {
     const { call, durationSeconds, transcript, summary } = body.message;
     const language = detectLanguage(transcript);
+    const intent = extractIntent(summary);
     await supabaseAdmin
       .from("calls")
       .update({
@@ -30,6 +32,7 @@ export async function POST(req: NextRequest) {
         transcript,
         summary,
         language,
+        intent,
       })
       .eq("call_id", call.id);
   }
