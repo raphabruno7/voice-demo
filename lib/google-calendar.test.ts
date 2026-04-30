@@ -20,6 +20,7 @@ import { createEvent } from './google-calendar';
 
 describe('createEvent', () => {
   beforeEach(() => {
+    process.env.GOOGLE_CALENDAR_ID = 'test-cal@group.calendar.google.com';
     mockInsert.mockClear();
     mockInsert.mockResolvedValue({
       data: {
@@ -49,5 +50,8 @@ describe('createEvent', () => {
     const start = new Date(call.requestBody.start.dateTime);
     const end = new Date(call.requestBody.end.dateTime);
     expect((end.getTime() - start.getTime()) / 60000).toBe(30);
+    expect(call.requestBody.start.timeZone).toBe('Europe/Lisbon');
+    expect(call.requestBody.end.timeZone).toBe('Europe/Lisbon');
+    expect(call.calendarId).toBe('test-cal@group.calendar.google.com');
   });
 });
