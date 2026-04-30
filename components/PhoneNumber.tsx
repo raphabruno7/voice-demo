@@ -29,7 +29,7 @@ export default function PhoneNumber({ number }: PhoneNumberProps) {
         variant="outline"
         className="border-white/20 bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white"
       >
-        {copied ? "Copiado!" : "Copiar número"}
+        {copied ? "Copied!" : "Copy number"}
       </Button>
     </div>
   );

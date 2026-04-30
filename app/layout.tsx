@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Space_Grotesk, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 const geistMono = Geist_Mono({
@@ -13,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Aria — Voice AI Demo · Raphael Bruno",
-  description: "Fala com um agente de IA ao vivo. Demonstração de voice agents por Raphael Bruno, especialista em automação com IA.",
+  title: "Ana — Voice AI Demo · Raphael Bruno",
+  description: "Talk to a live AI agent. Voice agent demo by Raphael Bruno, AI automation specialist.",
 };
 
 export default function RootLayout({
@@ -24,8 +25,8 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="pt"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      lang="en"
+      className={`${spaceGrotesk.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

@@ -23,19 +23,19 @@ export default function CallMeForm() {
   return (
     <div className="mt-10 rounded-xl border border-white/10 bg-white/5 p-6 text-left">
       <h2 className="text-white font-semibold text-lg mb-1">
-        Preferes receber a chamada?
+        Prefer to receive the call?
       </h2>
       <p className="text-zinc-400 text-sm mb-4">
-        Coloca o teu número e a Ana liga em segundos.
+        Enter your number and Ana will call you in seconds.
       </p>
 
       {status === "success" ? (
-        <p className="text-emerald-400 font-medium">A Ana está a ligar para ti agora!</p>
+        <p className="text-emerald-400 font-medium">Ana is calling you now!</p>
       ) : (
         <form onSubmit={handleSubmit} className="flex gap-2">
           <input
             type="tel"
-            placeholder="+351 912 345 678"
+            placeholder="+1 555 123 4567"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             required
@@ -46,13 +46,13 @@ export default function CallMeForm() {
             disabled={status === "loading"}
             className="bg-emerald-500 hover:bg-emerald-400 text-black font-semibold"
           >
-            {status === "loading" ? "A ligar..." : "Ligar"}
+            {status === "loading" ? "Calling..." : "Call Me"}
           </Button>
         </form>
       )}
 
       {status === "error" && (
-        <p className="text-red-400 text-sm mt-2">Erro ao iniciar chamada. Tenta novamente.</p>
+        <p className="text-red-400 text-sm mt-2">Failed to start the call. Please try again.</p>
       )}
     </div>
   );

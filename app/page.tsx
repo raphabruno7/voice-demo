@@ -17,19 +17,18 @@ export default function Home() {
           variant="outline"
           className="border-emerald-500/40 text-emerald-400 bg-emerald-500/10 mb-6"
         >
-          Live Demo · Disponível agora
+          Live Demo · Available Now
         </Badge>
 
         <h1 className="text-4xl sm:text-5xl font-bold text-white leading-tight uppercase tracking-wide">
-          Fala com um Agente de IA —{" "}
-          <span className="text-emerald-400">ao vivo, agora</span>
+          Talk to an AI Agent{" "}
+          <span className="text-emerald-400">live, right now</span>
         </h1>
 
         <p className="mt-4 text-zinc-400 text-lg leading-relaxed">
-          Liga para o número abaixo e conversa com{" "}
-          <strong className="text-white">Aria</strong>, um agente de voz com IA
-          bilíngue (PT / EN). Demonstração real de automação com inteligência
-          artificial construída por{" "}
+          Call the number below and chat with{" "}
+          <strong className="text-white">Ana</strong>, a bilingual AI voice
+          agent (PT / EN). A real-world demo of AI automation built by{" "}
           <a
             href="https://raphaelbruno.dev"
             target="_blank"
