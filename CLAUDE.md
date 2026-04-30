@@ -24,6 +24,7 @@ app/
   api/
     vapi/webhook/route.ts       # Vapi event handler (call-started, end-of-call-report)
     call/route.ts               # Outbound call via Vapi REST API
+    calendar/route.ts           # Vapi tool endpoint — creates Google Calendar event for Ana
 components/
   CallStats.tsx                 # Async server component — revalidate 60s, reads Supabase
   CallMeForm.tsx                # Client component — triggers outbound call
@@ -32,6 +33,7 @@ components/
 lib/
   supabase.ts                   # Lazy singleton clients (anon + service_role)
   vapi.ts                       # VapiEvent types + detectLanguage()
+  google-calendar.ts            # Google Calendar service-account client (createEvent)
 supabase/migrations/
   001_calls.sql                 # calls table + RLS public read policy
 ```
@@ -60,6 +62,9 @@ supabase/migrations/
 | `VAPI_ASSISTANT_ID` | Outbound call payload |
 | `VAPI_PHONE_NUMBER_ID` | Outbound call payload |
 | `NEXT_PUBLIC_PHONE_NUMBER` | Phone number displayed on landing page |
+| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Google Calendar API auth (`/api/calendar`) |
+| `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` | Google Calendar API auth (`/api/calendar`) |
+| `GOOGLE_CALENDAR_ID` | Target calendar for demo events (`/api/calendar`) |
 
 Vercel env vars are synced via the Supabase native integration (covers the four Supabase vars automatically).
 

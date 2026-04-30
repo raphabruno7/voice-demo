@@ -33,7 +33,7 @@ OBJECTION HANDLING:
 
 APPOINTMENT BOOKING:
 If the caller shows genuine interest, say: "I can book a 15-minute demo with Raphael right now. Can I have your name and a preferred time — morning or afternoon this week?"
-Then use the Google Calendar booking tool with the collected name and time preference.
+Then call the bookMeeting tool with callerName and startTime (ISO 8601).
 
 CLOSING (after ~3 minutes or when natural):
 "If you'd like to explore this for your business, Raphael is available this week. I can book directly or you can reach him at raphaelbruno.dev@gmail.com."
@@ -45,11 +45,39 @@ DO NOT: invent specific pricing beyond "a few hundred euros", guarantee outcomes
 
 ## Vapi Tools to Configure
 
-### Google Calendar — Book Appointment
-- **Type:** Make API call / Function
-- **Trigger phrase:** When caller agrees to book a demo
-- **Action:** Create event in Raphael's Google Calendar
-- **Data to collect:** caller name, preferred day/time
+### bookMeeting
+
+In Vapi dashboard → Assistants → Ana → Tools → Add Tool → Custom Tool, paste:
+
+```json
+{
+  "type": "function",
+  "function": {
+    "name": "bookMeeting",
+    "description": "Books a 30-minute demo meeting with Raphael in Google Calendar. Use when the caller agrees to schedule a meeting.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "callerName": {
+          "type": "string",
+          "description": "Full name or first name of the caller"
+        },
+        "startTime": {
+          "type": "string",
+          "description": "ISO 8601 datetime string for the meeting start. Convert the caller's preferred day/time to an absolute ISO datetime (e.g. 2026-05-01T10:00:00). Morning = 10:00, Afternoon = 15:00. Base relative dates on today's date."
+        }
+      },
+      "required": ["callerName", "startTime"]
+    }
+  },
+  "server": {
+    "url": "https://voice-demo-navy.vercel.app/api/calendar",
+    "headers": {
+      "x-vapi-secret": "<paste VAPI_WEBHOOK_SECRET value here>"
+    }
+  }
+}
+```
 
 ---
 
