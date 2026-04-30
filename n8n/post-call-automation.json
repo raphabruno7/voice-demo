@@ -2,15 +2,14 @@
   "_meta": {
     "description": "Post-call automation for voice-demo. Triggers on Supabase calls UPDATE, sends WhatsApp summary via Twilio, logs to Google Sheets, syncs qualified leads to GoHighLevel.",
     "n8n_version": "1.x",
-    "make_compatible": true,
-    "last_updated": "2026-04-29"
+    "last_updated": "2026-04-30"
   },
   "name": "Voice Demo — Post-Call Automation",
   "nodes": [
     {
       "name": "Supabase Trigger",
       "type": "n8n-nodes-base.webhook",
-      "notes": "Configure Supabase DB Webhook: Table=calls, Events=UPDATE, Filter: ended_at IS NOT NULL AND notified_at IS NULL. Point to this n8n webhook URL.",
+      "notes": "Receives Supabase DB webhook on calls UPDATE. Configure in Supabase: Database > Webhooks > New Webhook, table=calls, event=UPDATE, URL=<this node URL>.",
       "parameters": {
         "httpMethod": "POST",
         "path": "voice-demo-call-ended",
@@ -18,32 +17,78 @@
       }
     },
     {
+      "name": "IF — Has Ended and Not Notified",
+      "type": "n8n-nodes-base.if",
+      "notes": "Guard: only process calls that have ended and have not been notified yet. Prevents reprocessing on repeated Supabase updates.",
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.record.ended_at }}",
+              "operation": "isNotEmpty"
+            }
+          ],
+          "dateTime": [],
+          "boolean": [
+            {
+              "value1": "={{ $json.record.notified_at === null || $json.record.notified_at === undefined }}",
+              "value2": true
+            }
+          ]
+        },
+        "combineOperation": "all"
+      }
+    },
+    {
       "name": "Twilio WhatsApp — Notify Raphael",
       "type": "n8n-nodes-base.twilio",
-      "notes": "Sends post-call summary to Raphael via WhatsApp. Requires Twilio credentials with WhatsApp enabled.",
+      "notes": "Sends post-call summary to Raphael via WhatsApp. Credential: Twilio API (Account SID + Auth Token). From = whatsapp:+14155238886 (sandbox) or your real Twilio number. To = whatsapp:+351XXXXXXXXX.",
       "parameters": {
         "operation": "send",
-        "from": "={{ $env.TWILIO_WHATSAPP_FROM }}",
-        "to": "={{ $env.TWILIO_WHATSAPP_TO }}",
-        "message": "=📞 Nova chamada\nNúmero: {{ $json.record.caller_number ?? 'desconhecido' }}\nIdioma: {{ $json.record.language }} | Duração: {{ $json.record.duration_sec }}s\nIntent: {{ $json.record.intent }}\n\nResumo:\n{{ $json.record.summary }}"
+        "from": "whatsapp:+14155238886",
+        "to": "={{ 'whatsapp:' + $env.TWILIO_WHATSAPP_TO }}",
+        "message": "=📞 Nova chamada\nNúmero: {{ $json.record.caller_number ?? 'desconhecido' }}\nNome: {{ $json.record.caller_name ?? '-' }}\nIdioma: {{ $json.record.language }} | Duração: {{ $json.record.duration_sec }}s\nIntent: {{ $json.record.intent }}\n\nResumo:\n{{ $json.record.summary }}"
       }
     },
     {
       "name": "Google Sheets — Append Row",
       "type": "n8n-nodes-base.googleSheets",
-      "notes": "Appends one row per call to 'Voice Demo Calls' sheet. Create sheet with headers: Date | Caller | Language | Duration (s) | Intent | Summary",
+      "notes": "Appends one row per call. Create sheet manually with headers in row 1: Date | Caller | Language | Duration (s) | Intent | Summary. Then replace YOUR_GOOGLE_SHEET_ID with the ID from the sheet URL.",
       "parameters": {
         "operation": "append",
-        "sheetId": "YOUR_GOOGLE_SHEET_ID",
-        "range": "Voice Demo Calls!A:F",
-        "values": {
-          "Date": "={{ new Date($json.record.ended_at).toLocaleString('pt-PT') }}",
-          "Caller": "={{ $json.record.caller_number ?? '' }}",
-          "Language": "={{ $json.record.language }}",
-          "Duration (s)": "={{ $json.record.duration_sec }}",
-          "Intent": "={{ $json.record.intent }}",
-          "Summary": "={{ $json.record.summary }}"
+        "documentId": "YOUR_GOOGLE_SHEET_ID",
+        "sheetName": "Voice Demo Calls",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{ new Date($json.record.ended_at).toLocaleString('pt-PT') }}",
+            "Caller": "={{ $json.record.caller_number ?? '' }}",
+            "Language": "={{ $json.record.language }}",
+            "Duration (s)": "={{ $json.record.duration_sec }}",
+            "Intent": "={{ $json.record.intent }}",
+            "Summary": "={{ $json.record.summary }}"
+          }
         }
+      }
+    },
+    {
+      "name": "Supabase — Mark Notified",
+      "type": "n8n-nodes-base.httpRequest",
+      "notes": "Marks the call as notified so it is not processed again. Uses Supabase REST API with service_role key. Set n8n env vars: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.",
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/calls?call_id=eq.{{ $json.record.call_id }}",
+        "headers": {
+          "apikey": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}",
+          "Authorization": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}",
+          "Content-Type": "application/json",
+          "Prefer": "return=minimal"
+        },
+        "body": {
+          "notified_at": "={{ new Date().toISOString() }}"
+        },
+        "sendBody": true,
+        "bodyContentType": "json"
       }
     },
     {
@@ -63,63 +108,69 @@
       }
     },
     {
-      "name": "GoHighLevel — Create/Update Contact",
+      "name": "GoHighLevel — Create Contact",
       "type": "n8n-nodes-base.httpRequest",
-      "notes": "Creates or updates a GHL contact. Replace YOUR_GHL_API_KEY and YOUR_GHL_LOCATION_ID. GHL API: https://highlevel.stoplight.io/docs/integrations",
+      "notes": "Creates a GHL contact using API v2. Add Header Auth credential named 'GoHighLevel API' with header name=Authorization value='Bearer YOUR_GHL_API_KEY'. Replace YOUR_GHL_LOCATION_ID below.",
       "parameters": {
         "method": "POST",
-        "url": "https://rest.gohighlevel.com/v1/contacts/",
+        "url": "https://services.leadconnectorhq.com/contacts/",
         "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "nodeCredentialType": "httpHeaderAuth",
         "headers": {
-          "Authorization": "Bearer YOUR_GHL_API_KEY",
+          "Version": "2021-07-28",
           "Content-Type": "application/json"
         },
         "body": {
           "locationId": "YOUR_GHL_LOCATION_ID",
           "phone": "={{ $json.record.caller_number }}",
-          "name": "={{ $json.record.caller_name ?? $json.record.caller_number }}",
-          "tags": ["voice-demo", "={{ $json.record.intent }}", "={{ $json.record.language }}"],
-          "customField": {
-            "call_summary": "={{ $json.record.summary }}",
-            "call_language": "={{ $json.record.language }}",
-            "call_intent": "={{ $json.record.intent }}"
-          }
-        }
-      }
-    },
-    {
-      "name": "Supabase — Mark Notified",
-      "type": "n8n-nodes-base.httpRequest",
-      "notes": "Updates notified_at to prevent reprocessing. Uses Supabase REST API with service_role key.",
-      "parameters": {
-        "method": "PATCH",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/calls?call_id=eq.{{ $json.record.call_id }}",
-        "headers": {
-          "apikey": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}",
-          "Authorization": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}",
-          "Content-Type": "application/json",
-          "Prefer": "return=minimal"
+          "firstName": "={{ $json.record.caller_name ?? $json.record.caller_number }}",
+          "tags": ["voice-demo", "={{ $json.record.intent }}", "={{ $json.record.language }}"]
         },
-        "body": {
-          "notified_at": "={{ new Date().toISOString() }}"
-        }
+        "sendBody": true,
+        "bodyContentType": "json"
       }
     }
   ],
   "connections": {
-    "Supabase Trigger": { "main": [["Twilio WhatsApp — Notify Raphael", "Google Sheets — Append Row", "IF — Qualified or Booked"]] },
-    "IF — Qualified or Booked": { "main": [["GoHighLevel — Create/Update Contact"], []] },
-    "GoHighLevel — Create/Update Contact": { "main": [["Supabase — Mark Notified"]] },
-    "Google Sheets — Append Row": { "main": [["Supabase — Mark Notified"]] }
+    "Supabase Trigger": {
+      "main": [[
+        { "node": "IF — Has Ended and Not Notified", "type": "main", "index": 0 }
+      ]]
+    },
+    "IF — Has Ended and Not Notified": {
+      "main": [
+        [
+          { "node": "Twilio WhatsApp — Notify Raphael", "type": "main", "index": 0 },
+          { "node": "Google Sheets — Append Row", "type": "main", "index": 0 },
+          { "node": "IF — Qualified or Booked", "type": "main", "index": 0 }
+        ],
+        []
+      ]
+    },
+    "Google Sheets — Append Row": {
+      "main": [[
+        { "node": "Supabase — Mark Notified", "type": "main", "index": 0 }
+      ]]
+    },
+    "IF — Qualified or Booked": {
+      "main": [
+        [{ "node": "GoHighLevel — Create Contact", "type": "main", "index": 0 }],
+        []
+      ]
+    }
   },
   "setup_checklist": [
-    "1. Import this JSON into n8n (Workflows > Import)",
-    "2. Configure Twilio credentials in n8n (Credentials > Twilio API)",
-    "3. Configure Google Sheets OAuth2 in n8n",
-    "4. Replace YOUR_GOOGLE_SHEET_ID with actual sheet ID from URL",
-    "5. Replace YOUR_GHL_API_KEY and YOUR_GHL_LOCATION_ID with GoHighLevel credentials",
-    "6. In Supabase: Database > Webhooks > Create Webhook on table 'calls', event UPDATE, pointing to this n8n webhook URL",
-    "7. Activate the n8n workflow",
-    "8. Make a test call and verify: WhatsApp received, row in Google Sheets, GHL contact created"
+    "1. In n8n: Settings > Variables — add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY",
+    "2. In n8n: Settings > Variables — add TWILIO_WHATSAPP_TO (your PT number, e.g. +351912345678)",
+    "3. Configure Twilio API credential in n8n Credentials (Account SID + Auth Token)",
+    "4. Configure Google Sheets OAuth2 credential in n8n Credentials",
+    "5. Create Google Sheet named 'Voice Demo Calls' with headers: Date | Caller | Language | Duration (s) | Intent | Summary",
+    "6. Replace YOUR_GOOGLE_SHEET_ID in Google Sheets node with the ID from your sheet URL",
+    "7. Create Header Auth credential in n8n named 'GoHighLevel API': header=Authorization, value=Bearer YOUR_GHL_API_KEY",
+    "8. Replace YOUR_GHL_LOCATION_ID in GHL node with your Location ID from GHL dashboard",
+    "9. In Supabase: Database > Webhooks > New Webhook — table=calls, event=UPDATE, URL=<n8n Supabase Trigger webhook URL>",
+    "10. Activate the workflow in n8n",
+    "11. Make a test call and verify: WhatsApp received, row in Google Sheets, GHL contact created (if qualified)"
   ]
 }
