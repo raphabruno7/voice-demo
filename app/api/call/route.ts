@@ -17,6 +17,13 @@ export async function POST(req: NextRequest) {
       assistantId: process.env.VAPI_ASSISTANT_ID,
       phoneNumberId: process.env.VAPI_PHONE_NUMBER_ID,
       customer: { number: phoneNumber },
+      assistantOverrides: {
+        model: { provider: "groq", model: "llama-3.3-70b-versatile", temperature: 0.3, maxTokens: 150 },
+        firstMessage: "Olá, sou a Ana — uma demonstração real de um agente de IA criado por Raphael Bruno. Como posso ajudar?",
+        firstMessageMode: "assistant-speaks-first",
+        maxDurationSeconds: 240,
+        backgroundSound: "off",
+      },
     }),
   });
 

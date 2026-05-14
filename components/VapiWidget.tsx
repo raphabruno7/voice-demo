@@ -19,7 +19,19 @@ export default function VapiWidget() {
     vapi.on("speech-start", () => setIsSpeaking(true));
     vapi.on("speech-end", () => setIsSpeaking(false));
 
-    return () => { vapi.stop(); };
+    const originalConsoleError = console.error;
+    console.error = (...args: unknown[]) => {
+      if (typeof args[0] === "string" && (
+        args[0].includes("WASM_OR_WORKER_NOT_READY") ||
+        args[0].includes("send transport changed to disconnected")
+      )) return;
+      originalConsoleError(...args);
+    };
+
+    return () => {
+      console.error = originalConsoleError;
+      vapi.stop();
+    };
   }, []);
 
   async function handleClick() {
@@ -29,7 +41,17 @@ export default function VapiWidget() {
       vapiRef.current.stop();
     } else if (state === "idle") {
       setState("connecting");
-      await vapiRef.current.start(process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID!);
+      await vapiRef.current.start(
+        process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID!,
+        {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          model: { provider: "groq", model: "llama-3.3-70b-versatile", temperature: 0.3, maxTokens: 150 } as any,
+          firstMessage: "Hi, I'm Ana — a live AI voice agent built by Raphael Bruno. What brings you here today?",
+          firstMessageMode: "assistant-speaks-first",
+          maxDurationSeconds: 240,
+          backgroundSound: "off",
+        }
+      );
     }
   }
 
