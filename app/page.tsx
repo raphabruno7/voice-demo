@@ -6,7 +6,7 @@ import CallStats from "@/components/CallStats";
 import PhoneNumber from "@/components/PhoneNumber";
 import CallMeForm from "@/components/CallMeForm";
 import QRCodeImage from "@/components/QRCode";
-import VapiWidget from "@/components/VapiWidget";
+import LiveKitWidget from "@/components/LiveKitWidget";
 
 const PHONE_NUMBER = process.env.NEXT_PUBLIC_PHONE_NUMBER ?? "+351 000 000 000";
 
@@ -47,10 +47,10 @@ export default function Home() {
         </div>
 
         <p className="mt-4 text-zinc-500 text-sm">
-          Powered by Vapi · Groq · Llama 3.3
+          Powered by LiveKit · Grok Voice · xAI
         </p>
 
-        <VapiWidget />
+        <LiveKitWidget />
 
         <CallMeForm />
 

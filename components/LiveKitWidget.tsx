@@ -1,55 +1,43 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import Vapi from "@vapi-ai/web";
+import { useState } from "react";
+import { ConversationProvider, useConversation } from "@elevenlabs/react";
 
 type CallState = "idle" | "connecting" | "active" | "ending";
 
-export default function VapiWidget() {
-  const vapiRef = useRef<Vapi | null>(null);
+function WidgetInner() {
   const [state, setState] = useState<CallState>("idle");
-  const [isSpeaking, setIsSpeaking] = useState(false);
 
-  useEffect(() => {
-    const vapi = new Vapi(process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY!);
-    vapiRef.current = vapi;
-
-    vapi.on("call-start", () => setState("active"));
-    vapi.on("call-end", () => { setState("idle"); setIsSpeaking(false); });
-    vapi.on("speech-start", () => setIsSpeaking(true));
-    vapi.on("speech-end", () => setIsSpeaking(false));
-
-    const originalConsoleError = console.error;
-    console.error = (...args: unknown[]) => {
-      if (typeof args[0] === "string" && (
-        args[0].includes("WASM_OR_WORKER_NOT_READY") ||
-        args[0].includes("send transport changed to disconnected")
-      )) return;
-      originalConsoleError(...args);
-    };
-
-    return () => {
-      console.error = originalConsoleError;
-      vapi.stop();
-    };
-  }, []);
+  const conversation = useConversation({
+    onConnect: () => setState("active"),
+    onDisconnect: () => setState("idle"),
+    onError: () => setState("idle"),
+  });
 
   async function handleClick() {
-    if (!vapiRef.current) return;
     if (state === "active" || state === "ending") {
       setState("ending");
-      vapiRef.current.stop();
-    } else if (state === "idle") {
-      setState("connecting");
-      await vapiRef.current.start(process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID!);
+      await conversation.endSession();
+      setState("idle");
+      return;
+    }
+
+    setState("connecting");
+    try {
+      const res = await fetch("/api/elevenlabs/signed-url", { method: "POST" });
+      if (!res.ok) throw new Error("Failed to get signed URL");
+      const { signedUrl } = await res.json();
+      await conversation.startSession({ signedUrl });
+    } catch {
+      setState("idle");
     }
   }
 
+  const isSpeaking = conversation.isSpeaking;
   const label =
     state === "idle" ? "Talk to Ana — free, right now" :
     state === "connecting" ? "Connecting…" :
-    state === "active" ? "End call" :
-    "Ending…";
+    state === "active" ? "End call" : "Ending…";
 
   const isActive = state === "active";
   const isLoading = state === "connecting" || state === "ending";
@@ -86,5 +74,13 @@ export default function VapiWidget() {
         <p className="text-xs text-zinc-500 animate-pulse">Ana is listening…</p>
       )}
     </div>
+  );
+}
+
+export default function LiveKitWidget() {
+  return (
+    <ConversationProvider>
+      <WidgetInner />
+    </ConversationProvider>
   );
 }

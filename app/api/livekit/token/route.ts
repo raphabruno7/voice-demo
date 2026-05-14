@@ -1,0 +1,28 @@
+import { NextRequest, NextResponse } from "next/server";
+import { AccessToken, AgentDispatchClient, RoomServiceClient } from "livekit-server-sdk";
+import { randomUUID } from "crypto";
+
+export async function POST(req: NextRequest) {
+  const body = await req.json().catch(() => ({}));
+  const identity = (body.participantName as string | undefined) ?? "caller";
+  const roomName = `ana-${randomUUID()}`;
+
+  const httpUrl = process.env.LIVEKIT_URL!.replace("wss://", "https://");
+  const apiKey = process.env.LIVEKIT_API_KEY!;
+  const apiSecret = process.env.LIVEKIT_API_SECRET!;
+
+  const roomSvc = new RoomServiceClient(httpUrl, apiKey, apiSecret);
+  await roomSvc.createRoom({ name: roomName, emptyTimeout: 300, maxParticipants: 2 });
+
+  const dispatchSvc = new AgentDispatchClient(httpUrl, apiKey, apiSecret);
+  await dispatchSvc.createDispatch(roomName, "ana-agent");
+
+  const at = new AccessToken(apiKey, apiSecret, { identity, ttl: "10m" });
+  at.addGrant({ roomJoin: true, room: roomName, canPublish: true, canSubscribe: true });
+
+  return NextResponse.json({
+    token: await at.toJwt(),
+    url: process.env.LIVEKIT_URL!,
+    roomName,
+  });
+}
