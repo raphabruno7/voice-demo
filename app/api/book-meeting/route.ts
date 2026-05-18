@@ -36,9 +36,8 @@ export async function POST(req: NextRequest) {
     console.error('[/api/book-meeting] createEvent failed:', err);
     // Return 200: Hume treats any non-200 as network error and retries indefinitely.
     // Signal failure via response body instead.
-    const msg = err instanceof Error ? err.message : String(err);
     return NextResponse.json(
-      { success: false, error: 'Failed to create calendar event', detail: msg },
+      { success: false, error: 'Failed to create calendar event' },
       { status: 200 }
     );
   }
