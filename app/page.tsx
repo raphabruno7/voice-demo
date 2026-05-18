@@ -6,7 +6,7 @@ import CallStats from "@/components/CallStats";
 import PhoneNumber from "@/components/PhoneNumber";
 import CallMeForm from "@/components/CallMeForm";
 import QRCodeImage from "@/components/QRCode";
-import LiveKitWidget from "@/components/LiveKitWidget";
+import HumeWidget from "@/components/HumeWidget";
 
 const PHONE_NUMBER = process.env.NEXT_PUBLIC_PHONE_NUMBER ?? "+351 000 000 000";
 
@@ -47,10 +47,10 @@ export default function Home() {
         </div>
 
         <p className="mt-4 text-zinc-500 text-sm">
-          Powered by LiveKit · Grok Voice · xAI
+          Powered by Hume EVI 3 · Claude Sonnet 4
         </p>
 
-        <LiveKitWidget />
+        <HumeWidget />
 
         <CallMeForm />
 
