@@ -65,20 +65,33 @@ describe('POST /api/book-meeting', () => {
     expect(res.status).toBe(400);
   });
 
-  it('returns success with meetingTime on valid input', async () => {
+  it('returns success with meetingTime formatted in pt-PT locale', async () => {
     const res = await POST(makeRequest(validBody));
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.success).toBe(true);
     expect(typeof data.meetingTime).toBe('string');
-    expect(data.meetingTime.length).toBeGreaterThan(0);
+    // pt-PT format includes day-of-week and month in Portuguese
+    expect(data.meetingTime).toMatch(/\d{1,2}\s+de\s+\w+/);
   });
 
   it('passes callerPhone to createEvent', async () => {
     const { createEvent } = await import('@/lib/google-calendar');
+    vi.mocked(createEvent).mockClear();
     await POST(makeRequest(validBody));
-    expect(createEvent).toHaveBeenCalledWith(
+    expect(vi.mocked(createEvent)).toHaveBeenCalledWith(
       expect.objectContaining({ callerPhone: '+351 912 345 678' })
     );
+  });
+
+  it('returns 200 with success:false when createEvent throws', async () => {
+    const { createEvent } = await import('@/lib/google-calendar');
+    vi.mocked(createEvent).mockRejectedValueOnce(new Error('Calendar API down'));
+
+    const res = await POST(makeRequest(validBody));
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.success).toBe(false);
+    expect(data.error).toBe('Failed to create calendar event');
   });
 });
