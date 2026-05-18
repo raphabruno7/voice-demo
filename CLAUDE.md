@@ -107,6 +107,7 @@ supabase/migrations/
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Google Calendar API auth (`/api/calendar`) |
 | `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` | Google Calendar API auth (`/api/calendar`) |
 | `GOOGLE_CALENDAR_ID` | Target calendar |
+| `HUME_TOOL_SECRET` | Auth header `x-hume-secret` em `/api/book-meeting` |
 
 ### Standby (outros provedores)
 | Variable | Where |
@@ -210,8 +211,8 @@ Tabela única `calls`. Schema em `supabase/migrations/001_calls.sql`. RLS enable
 
 ## Pendentes / decisões abertas
 
-- **Vercel env vars Hume** — não adicionadas ao Vercel; produção ainda corre ElevenLabs (último push estável). Para activar Hume em produção: adicionar `HUME_API_KEY`, `HUME_SECRET_KEY`, `NEXT_PUBLIC_HUME_CONFIG_ID` manualmente no Vercel dashboard (Supabase vars já sincronizadas via integration nativa).
-- **`book_meeting` tool** — não implementado. Falta: (a) criar custom tool `book_meeting` no config Hume via API/UI com parâmetros `name`, `email`, `date`, `time`; (b) handler client-side no `HumeWidget.tsx` via `useVoice` para interceptar o tool call e chamar `/api/calendar`.
+- **Vercel env vars Hume** — ✅ adicionadas (HUME_API_KEY, HUME_SECRET_KEY, NEXT_PUBLIC_HUME_CONFIG_ID, HUME_TOOL_SECRET) em Production e Development.
+- **`book_meeting` tool** — ✅ implementado via server-side Hume tool. Tool ID: `b8427229-73d6-42d5-bf40-cf4cfbaac73a`. Endpoint: `/api/book-meeting` (auth: `HUME_TOOL_SECRET`). Recolhe nome + telefone + data/hora, cria evento no Google Calendar, devolve `meetingTime` em pt-PT para a Ana confirmar.
 - **Velocidade da voz** — controlada via `[VOICE DIRECTION: ...]` no system prompt (Octave lê o bloco). Iteração actual: "Ritmo rápido e directo de conversa de café — frases curtas, sem pausas longas". Funciona melhor que tentar via SDK (não há lever runtime).
 - **Voice clone vs Octave shared** — decisão tomada: usar **Octave shared "A Viajante de Alma"** em vez do clone. Clone soa óptimo em Playground (single-pass) mas perde em streaming; Octave shared aguenta melhor o streaming real-time.
 
