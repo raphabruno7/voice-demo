@@ -2,9 +2,11 @@ import { google } from 'googleapis';
 
 export async function createEvent({
   callerName,
+  callerPhone,
   startTime,
 }: {
   callerName: string;
+  callerPhone?: string;
   startTime: string;
 }) {
   const auth = new google.auth.GoogleAuth({
@@ -19,11 +21,14 @@ export async function createEvent({
   const start = new Date(startTime);
   const end = new Date(start.getTime() + 30 * 60 * 1000);
 
+  const descriptionParts = ['Booked via Ana voice AI agent (voice-demo)'];
+  if (callerPhone) descriptionParts.push(`Tel: ${callerPhone}`);
+
   const res = await calendar.events.insert({
     calendarId: process.env.GOOGLE_CALENDAR_ID!,
     requestBody: {
       summary: `Demo — ${callerName}`,
-      description: 'Booked via Ana voice AI agent (voice-demo)',
+      description: descriptionParts.join('\n'),
       start: { dateTime: start.toISOString(), timeZone: 'Europe/Lisbon' },
       end: { dateTime: end.toISOString(), timeZone: 'Europe/Lisbon' },
     },

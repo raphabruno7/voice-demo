@@ -54,4 +54,20 @@ describe('createEvent', () => {
     expect(call.requestBody.end.timeZone).toBe('Europe/Lisbon');
     expect(call.calendarId).toBe('test-cal@group.calendar.google.com');
   });
+
+  it('includes phone number in event description when provided', async () => {
+    await createEvent({
+      callerName: 'João',
+      callerPhone: '+351 912 345 678',
+      startTime: '2026-05-20T10:00:00',
+    });
+    const call = mockInsert.mock.calls[0][0];
+    expect(call.requestBody.description).toContain('+351 912 345 678');
+  });
+
+  it('omits phone line from description when callerPhone not provided', async () => {
+    await createEvent({ callerName: 'Maria', startTime: '2026-05-20T10:00:00' });
+    const call = mockInsert.mock.calls[0][0];
+    expect(call.requestBody.description).not.toContain('Tel:');
+  });
 });
