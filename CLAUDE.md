@@ -2,17 +2,19 @@
 
 # voice-demo
 
-Live voice AI agent (Ana) — portfolio demo de Raphael Bruno. Objectivo: state-of-the-art voice agent **multilíngue** com qualidade nativa por mercado. Stack contém **vários provedores em paralelo** — cada um optimizado para um caso de uso. Em **pt-PT** o melhor actualmente é **Hume EVI 3**; outros provedores permanecem para outras línguas, telefonia e fallback.
+Live voice AI agent (Ana) — portfolio demo de Raphael Bruno. Objectivo: state-of-the-art voice agent **multilíngue** com qualidade nativa por mercado. Stack contém **vários provedores em paralelo** — cada um optimizado para um caso de uso. Em **pt-PT** o melhor actualmente é **Hume EVI 4-mini**; outros provedores permanecem para outras línguas, telefonia e fallback.
 
 ## Stack actual (Maio 2026)
 
 | Camada | Activo | Notas |
 |---|---|---|
 | Framework | Next.js 16.2.4 (Turbopack) + React 19 | App Router, force-dynamic |
-| **Voice AI primário (pt-PT)** | **Hume EVI 3** | Voz nativa pt-PT, prosódia adaptativa, end-to-end |
+| **Voice AI primário (pt-PT)** | **Hume EVI 4-mini** | Voz nativa pt-PT, prosódia adaptativa, end-to-end |
 | LLM (via Hume) | Claude Sonnet 4 (`claude-sonnet-4-20250514`) | temperature 0.2 |
 | Auth Hume | `fetchAccessToken` do SDK `hume` | OAuth client credentials |
-| Calendar tool | `/api/calendar` Google Calendar | Service account, inalterado entre provedores |
+| **Booking tool** | `/api/book-meeting` | Server-side Hume tool, cria evento + envia WhatsApp |
+| Calendar | Google Calendar service account | `voice-demo-calendar@gen-lang-client-0657432502.iam.gserviceaccount.com` |
+| Notificações | Twilio WhatsApp sandbox | Envia para +351 931 822 816 após cada agendamento |
 | Database | Supabase (PostgreSQL + RLS) | Tabela `calls`, public read |
 | Deploy | Vercel | `voice-demo-navy.vercel.app` |
 | UI | Tailwind v4 + shadcn/ui (Base UI) | — |
@@ -23,13 +25,13 @@ Todos os caminhos estão **mantidos em código** para permitir A/B, fallback e m
 
 | Provedor | Estado | Melhor para | Como activar |
 |---|---|---|---|
-| **Hume EVI 3** | ✅ Activo (pt-PT) | pt-PT nativo, prosódia adaptativa | `<HumeWidget />` em `app/page.tsx` |
+| **Hume EVI 4-mini** | ✅ Activo (pt-PT) | pt-PT nativo, prosódia adaptativa, mais rápido | `<HumeWidget />` em `app/page.tsx` |
 | **ElevenLabs ConvAI** | 🟡 Standby | pt-PT (voz Marta), EN, ES, FR, DE | `<LiveKitWidget />` (nome legacy — usa ElevenLabs por baixo) |
 | **LiveKit + Grok Voice (xAI)** | 🟡 Standby (Python) | Realtime end-to-end EN, multilingual experimental | `livekit-agent/agent.py` — deploy separado Railway |
 | **Vapi + Groq Llama** | 🟡 Standby (telefone) | Outbound call (US number) | `/api/call/route.ts` + `/api/vapi/webhook` |
 
 **Decisão por mercado:**
-- 🇵🇹 pt-PT → Hume EVI 3 (sotaque + prosódia)
+- 🇵🇹 pt-PT → Hume EVI 4-mini (sotaque + prosódia + velocidade)
 - 🇺🇸 🇬🇧 EN / outros → ElevenLabs ConvAI (catálogo de vozes maduras)
 - 📞 Outbound telefone US (form "Call Me") → Vapi (mantido até migrar para Telnyx/Twilio SIP)
 - 🧪 Experimentos end-to-end multilingual → LiveKit + Grok Voice
@@ -39,7 +41,8 @@ Todos os caminhos estão **mantidos em código** para permitir A/B, fallback e m
 1. **Vapi + Groq Llama 3.3** (inicial) — sotaque pt-BR/americano não aceitável para audiência PT
 2. **LiveKit + Grok Voice (xAI Realtime)** — end-to-end real mas sotaque pt-PT fraco
 3. **ElevenLabs ConvAI + voz "Marta" (pt-PT)** — sotaque nativo OK, pipeline (não end-to-end)
-4. **Hume EVI 3 + voz "A Viajante de Alma" / clone custom** — **estado actual** para pt-PT
+4. **Hume EVI 3 + voz "A Viajante de Alma"** — migração para Hume
+5. **Hume EVI 4-mini + "A Viajante de Alma" + book_meeting tool + WhatsApp** — **estado actual**
 
 ### Trade-off chave identificado
 
@@ -52,10 +55,11 @@ app/
   page.tsx                              # Landing page — força <HumeWidget />
   api/
     hume/access-token/route.ts          # OAuth Hume — fetchAccessToken (server-side)
+    book-meeting/route.ts               # ✅ Tool Hume server-side — cria Calendar event + envia WhatsApp
     elevenlabs/signed-url/route.ts      # ElevenLabs ConvAI signed URL (standby)
     vapi/webhook/route.ts               # Vapi event handler (call lifecycle, end-of-call-report)
     call/route.ts                       # Outbound call via Vapi REST (US only)
-    calendar/route.ts                   # Tool endpoint — Google Calendar createEvent
+    calendar/route.ts                   # Tool endpoint Vapi — Google Calendar createEvent (standby)
 components/
   HumeWidget.tsx                        # ✅ Activo — usa @humeai/voice-react (VoiceProvider + useVoice)
   LiveKitWidget.tsx                     # Standby — apesar do nome, usa @elevenlabs/react (legacy naming)
@@ -108,6 +112,9 @@ supabase/migrations/
 | `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` | Google Calendar API auth (`/api/calendar`) |
 | `GOOGLE_CALENDAR_ID` | Target calendar |
 | `HUME_TOOL_SECRET` | Auth header `x-hume-secret` em `/api/book-meeting` |
+| `TWILIO_ACCOUNT_SID` | Auth Twilio REST API (`/api/book-meeting`) |
+| `TWILIO_AUTH_TOKEN` | Auth Twilio REST API (`/api/book-meeting`) |
+| `TWILIO_WHATSAPP_TO` | Número destino notificações (`whatsapp:+351931822816`) |
 
 ### Standby (outros provedores)
 | Variable | Where |
@@ -123,7 +130,7 @@ supabase/migrations/
 | `LIVEKIT_URL` / `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` | LiveKit fallback path |
 | `XAI_API_KEY` | Grok Voice via LiveKit (Python agent) |
 
-**Vercel:** vars Supabase sincronizadas via Supabase native integration. **Hume vars precisam ser adicionadas manualmente** ao Vercel para o deploy produção funcionar com Hume (estado actual: produção ainda usa ElevenLabs até esta sync).
+**Vercel:** todas as vars activas estão em Production + Development. Twilio sandbox — para testar localmente enviar `join <palavra-chave>` para `+14155238886` no WhatsApp.
 
 ## Como trocar de provedor
 
@@ -185,7 +192,7 @@ Tabela única `calls`. Schema em `supabase/migrations/001_calls.sql`. RLS enable
 
 ## Hume EVI config (referência operacional)
 
-- **Config ID em produção:** `7fd9f653-21d8-42db-b3df-c287d5899ec2` (versão actual: 22)
+- **Config ID em produção:** `7fd9f653-21d8-42db-b3df-c287d5899ec2` (versão actual: 25)
 - **Dashboard:** `app.hume.ai/evi/configs/7fd9f653-21d8-42db-b3df-c287d5899ec2`
 - **EVI runtime:** **EVI 4-mini** (`evi_version: "4-mini"`) — lightweight multilingual, optimizado para velocidade e custo
 - **Voz:** "A Viajante de Alma" (Octave HUME_AI shared, ID `7e4077d4-3f17-4012-bab2-18fd53b0c173`) — pt-PT nativa
@@ -198,6 +205,7 @@ Tabela única `calls`. Schema em `supabase/migrations/001_calls.sql`. RLS enable
 - **inactivity_nudges:** OFF (em demo web, pausa = pessoa a pensar)
 - **inactivity_timeout:** ON, 120s
 - **Built-in tools:** hang_up
+- **Custom tool:** `book_meeting` (ID `b8427229-73d6-42d5-bf40-cf4cfbaac73a`) → webhook `https://voice-demo-navy.vercel.app/api/book-meeting`
 
 **Edição via API:** sempre enviar payload completo (PUT-style). Voice field obrigatório em qualquer update. Campos `interruption` e `speech_detection_threshold` não aceites via API — editar pela UI.
 
@@ -213,8 +221,9 @@ Tabela única `calls`. Schema em `supabase/migrations/001_calls.sql`. RLS enable
 
 - **Vercel env vars Hume** — ✅ adicionadas (HUME_API_KEY, HUME_SECRET_KEY, NEXT_PUBLIC_HUME_CONFIG_ID, HUME_TOOL_SECRET) em Production e Development.
 - **`book_meeting` tool** — ✅ implementado via server-side Hume tool. Tool ID: `b8427229-73d6-42d5-bf40-cf4cfbaac73a`. Endpoint: `/api/book-meeting` (auth: `HUME_TOOL_SECRET`). Recolhe nome + telefone + data/hora, cria evento no Google Calendar, devolve `meetingTime` em pt-PT para a Ana confirmar.
-- **Velocidade da voz** — controlada via `[VOICE DIRECTION: ...]` no system prompt (Octave lê o bloco). Iteração actual: "Ritmo rápido e directo de conversa de café — frases curtas, sem pausas longas". Funciona melhor que tentar via SDK (não há lever runtime).
-- **Voice clone vs Octave shared** — decisão tomada: usar **Octave shared "A Viajante de Alma"** em vez do clone. Clone soa óptimo em Playground (single-pass) mas perde em streaming; Octave shared aguenta melhor o streaming real-time.
+- **Velocidade da voz** — ✅ resolvida via `[VOICE DIRECTION: ...]` no system prompt. "Very fast, clipped conversational pace". Não há lever runtime no SDK.
+- **Voice clone vs Octave shared** — ✅ decisão tomada: Octave shared "A Viajante de Alma". Clone perde em streaming; shared aguenta melhor.
+- **WhatsApp Twilio** — ✅ sandbox activo. Para produção real (sem sandbox) precisas de número Twilio com WhatsApp Business aprovado.
 
 ## Provedor a acompanhar
 
