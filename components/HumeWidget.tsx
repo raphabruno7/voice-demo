@@ -84,6 +84,13 @@ function WidgetInner({ state, setState, setError, transcript, setTranscript }: {
   setTranscript: React.Dispatch<React.SetStateAction<TranscriptEntry[]>>;
 }) {
   const { connect, disconnect, status, isPlaying, micFft, error, readyState, messages } = useVoice();
+  const transcriptRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const el = transcriptRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+  }, [transcript]);
 
   useEffect(() => {
     log("status", status);
@@ -246,7 +253,10 @@ function WidgetInner({ state, setState, setError, transcript, setTranscript }: {
       )}
 
       {transcript.length > 0 && (
-        <div className="mt-2 w-full max-h-64 overflow-y-auto rounded-lg border border-zinc-800 bg-zinc-950/60 p-3 text-sm space-y-2">
+        <div
+          ref={transcriptRef}
+          className="mt-2 w-full max-h-64 overflow-y-auto rounded-lg border border-zinc-800 bg-zinc-950/60 p-3 text-sm space-y-2 scroll-smooth"
+        >
           {transcript.map((t) => (
             <p key={t.id} className={t.role === "assistant" ? "text-emerald-300" : "text-zinc-200"}>
               <span className="text-zinc-500 mr-2">{t.role === "assistant" ? "Ana" : "Tu"}:</span>
