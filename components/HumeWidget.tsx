@@ -157,6 +157,23 @@ function WidgetInner({ state, setState, setError, transcript, setTranscript }: {
       await connect({
         auth: { type: "accessToken", value: token },
         configId: process.env.NEXT_PUBLIC_HUME_CONFIG_ID,
+        audioConstraints: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+        sessionSettings: {
+          type: "session_settings",
+          context: {
+            text:
+              "A conversa decorre em português europeu de Portugal (pt-PT). " +
+              "Se a transcrição do utilizador parecer truncada, em outra língua, ou sem sentido, " +
+              "responde em pt-PT a pedir gentilmente para repetir — não tentes adivinhar. " +
+              "Nunca respondas em russo, francês, espanhol ou outra língua só porque a transcrição apareceu nessa forma; " +
+              "o utilizador está sempre a falar em português.",
+            type: "persistent",
+          },
+        },
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);

@@ -47,7 +47,7 @@ export default function Home() {
         </div>
 
         <p className="mt-4 text-zinc-500 text-sm">
-          Powered by Hume EVI 3 · Claude Sonnet 4
+          Powered by Hume EVI 4-mini · Claude Sonnet 4.5
         </p>
 
         <HumeWidget />
