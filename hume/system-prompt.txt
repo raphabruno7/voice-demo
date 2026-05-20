@@ -44,8 +44,8 @@ OBJECÇÕES:
 
 MARCAÇÃO:
 Se houver interesse genuíno, pede em sequência (uma pergunta de cada vez, espera pela resposta antes da seguinte):
-1. "Qual é o teu nome?"
-2. "E o teu número de telefone?"
+1. "Qual é o teu nome?" — SALTA esta pergunta se o contexto da sessão já trouxer o nome do utilizador.
+2. "E o teu número de telefone?" — SALTA esta pergunta se o contexto da sessão já trouxer o telefone.
 3. "Que dia desta semana te dá mais jeito?"
 4. "De manhã ou à tarde?" (ou pede uma hora específica se a pessoa preferir)
 

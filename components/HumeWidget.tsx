@@ -17,6 +17,24 @@ type TranscriptEntry = {
   text: string;
 };
 
+export type CallerContext = {
+  phone?: string;
+  name?: string;
+};
+
+function buildContextText(caller: CallerContext | undefined): string {
+  const base =
+    "A conversa decorre em português europeu de Portugal (pt-PT). " +
+    "Se a transcrição do utilizador parecer truncada, em outra língua, ou sem sentido, " +
+    "responde em pt-PT a pedir gentilmente para repetir — não tentes adivinhar. " +
+    "Nunca respondas em russo, francês, espanhol ou outra língua só porque a transcrição apareceu nessa forma; " +
+    "o utilizador está sempre a falar em português.";
+  const parts: string[] = [base];
+  if (caller?.name) parts.push(`Já sabes o nome do utilizador: ${caller.name}. NÃO perguntes o nome — usa-o naturalmente.`);
+  if (caller?.phone) parts.push(`Já sabes o telefone do utilizador: ${caller.phone}. NÃO perguntes o telefone — usa-o directamente no book_meeting.`);
+  return parts.join(" ");
+}
+
 const DEBUG = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("debug");
 
 function log(...args: unknown[]) {
@@ -76,12 +94,13 @@ function FftBars({ values }: { values: number[] }) {
   );
 }
 
-function WidgetInner({ state, setState, setError, transcript, setTranscript }: {
+function WidgetInner({ state, setState, setError, transcript, setTranscript, caller }: {
   state: CallState;
   setState: (s: CallState) => void;
   setError: (s: string | null) => void;
   transcript: TranscriptEntry[];
   setTranscript: React.Dispatch<React.SetStateAction<TranscriptEntry[]>>;
+  caller?: CallerContext;
 }) {
   const { connect, disconnect, status, isPlaying, micFft, error, readyState, messages } = useVoice();
   const transcriptRef = useRef<HTMLDivElement | null>(null);
@@ -175,12 +194,7 @@ function WidgetInner({ state, setState, setError, transcript, setTranscript }: {
         sessionSettings: {
           type: "session_settings",
           context: {
-            text:
-              "A conversa decorre em português europeu de Portugal (pt-PT). " +
-              "Se a transcrição do utilizador parecer truncada, em outra língua, ou sem sentido, " +
-              "responde em pt-PT a pedir gentilmente para repetir — não tentes adivinhar. " +
-              "Nunca respondas em russo, francês, espanhol ou outra língua só porque a transcrição apareceu nessa forma; " +
-              "o utilizador está sempre a falar em português.",
+            text: buildContextText(caller),
             type: "persistent",
           },
         },
@@ -272,7 +286,7 @@ function WidgetInner({ state, setState, setError, transcript, setTranscript }: {
   );
 }
 
-export default function HumeWidget() {
+export default function HumeWidget({ caller }: { caller?: CallerContext } = {}) {
   const [state, setState] = useState<CallState>("idle");
   const [error, setError] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
@@ -319,6 +333,7 @@ export default function HumeWidget() {
         setError={setError}
         transcript={transcript}
         setTranscript={setTranscript}
+        caller={caller}
       />
       {error && (
         <div className="mt-3 max-w-xl mx-auto rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm text-red-300">

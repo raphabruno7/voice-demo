@@ -10,7 +10,17 @@ import HumeWidget from "@/components/HumeWidget";
 
 const PHONE_NUMBER = process.env.NEXT_PUBLIC_PHONE_NUMBER ?? "+351 000 000 000";
 
-export default function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ phone?: string; name?: string }>;
+}) {
+  const params = await searchParams;
+  const caller = {
+    phone: params.phone?.trim() || undefined,
+    name: params.name?.trim() || undefined,
+  };
+
   return (
     <main className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center px-6 py-20">
       <div className="max-w-xl w-full text-center">
@@ -50,7 +60,7 @@ export default function Home() {
           Powered by Hume EVI 4-mini · Claude Sonnet 4.5
         </p>
 
-        <HumeWidget />
+        <HumeWidget caller={caller} />
 
         <CallMeForm />
 
