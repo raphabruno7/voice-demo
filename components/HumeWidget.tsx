@@ -122,6 +122,9 @@ function WidgetInner({ state, setState, setError, transcript, setTranscript }: {
     const m = latest as JSONMessage;
     if (m.type === "user_message") {
       const um = m as UserTranscriptMessage;
+      // Skip interim transcripts — Hume streams partials until finalized;
+      // we only want the final one to avoid duplicates in the UI.
+      if (um.interim) return;
       const text = um.message?.content ?? "";
       if (text) {
         setTranscript((prev) => [
