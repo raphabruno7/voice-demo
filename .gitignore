@@ -44,4 +44,5 @@ next-env.d.ts
 # python virtual env
 livekit-agent/venv/
 
-.env*.local
+# MCP config with secrets
+.mcp.json
