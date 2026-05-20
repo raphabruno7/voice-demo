@@ -81,9 +81,15 @@ export async function POST(req: NextRequest) {
       timeZone: 'Europe/Lisbon',
     });
 
-    sendWhatsApp(
-      `📅 Novo agendamento via Ana\n\nNome: ${callerName}\nTelefone: ${callerPhone}\nHora: ${meetingTime}`
-    ).catch((e) => console.error('[/api/book-meeting] WhatsApp failed:', e));
+    // Await the WhatsApp send so the serverless function doesn't terminate mid-flight.
+    // Tradeoff: ~500ms added to response; in exchange the notification reliably ships.
+    try {
+      await sendWhatsApp(
+        `📅 Novo agendamento via Ana\n\nNome: ${callerName}\nTelefone: ${callerPhone}\nHora: ${meetingTime}`
+      );
+    } catch (e) {
+      console.error('[/api/book-meeting] WhatsApp failed:', e);
+    }
 
     return NextResponse.json({ success: true, meetingTime });
   } catch (err) {
