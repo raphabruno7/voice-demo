@@ -2,39 +2,39 @@
 
 # voice-demo
 
-Live voice AI agent (Ana) — portfolio demo de Raphael Bruno. Objectivo: state-of-the-art voice agent **multilíngue** com qualidade nativa por mercado. Stack contém **vários provedores em paralelo** — cada um optimizado para um caso de uso. Em **pt-PT** o melhor actualmente é **Hume EVI 4-mini**; outros provedores permanecem para outras línguas, telefonia e fallback.
+Live voice AI agent (Ana) — portfolio demo de Raphael Bruno. Objectivo: state-of-the-art voice agent **multilíngue** com qualidade nativa por mercado. Stack contém **vários provedores em paralelo** — cada um optimizado para um caso de uso. Navegação entre agentes via `AgentNav` (top-right, todas as páginas).
 
 ## Stack actual (Maio 2026)
 
 | Camada | Activo | Notas |
 |---|---|---|
 | Framework | Next.js 16.2.4 (Turbopack) + React 19 | App Router, force-dynamic |
-| **Voice AI primário (pt-PT)** | **Hume EVI 4-mini** | Voz nativa pt-PT, prosódia adaptativa, end-to-end |
+| **Voice AI primário (pt-PT browser)** | **Hume EVI 4-mini** | Voz nativa pt-PT, prosódia adaptativa, end-to-end |
+| **Voice AI alternativo (browser + telefone)** | **Gemini Live** | `gemini-2.5-flash-native-audio-latest`, melhor fluxo de conversa, multilíngue |
 | LLM (via Hume) | Claude Sonnet 4 (`claude-sonnet-4-20250514`) | temperature 0.2 |
+| LLM (via Gemini Live) | Gemini 2.5 Flash native audio | integrado no modelo, sem LLM separado |
 | Auth Hume | `fetchAccessToken` do SDK `hume` | OAuth client credentials |
-| **Booking tool** | `/api/book-meeting` | Server-side Hume tool, cria evento + envia WhatsApp |
+| **Booking tool** | `/api/book-meeting` | Server-side tool (Hume + LiveKit), cria evento + envia WhatsApp |
 | Calendar | Google Calendar service account | `voice-demo-calendar@gen-lang-client-0657432502.iam.gserviceaccount.com` |
 | Notificações | Twilio WhatsApp sandbox | Envia para +351 931 822 816 após cada agendamento |
 | Database | Supabase (PostgreSQL + RLS) | Tabela `calls`, public read |
-| Deploy | Vercel | `voice-demo-navy.vercel.app` |
+| Deploy | Vercel (Next.js) + local/Railway (Python agent) | `voice-demo-navy.vercel.app` |
 | UI | Tailwind v4 + shadcn/ui (Base UI) | — |
 
 ### Provedores no stack (paralelo, multilíngue)
 
-Todos os caminhos estão **mantidos em código** para permitir A/B, fallback e melhor escolha por mercado:
-
-| Provedor | Estado | Melhor para | Como activar |
+| Provedor | Estado | Melhor para | Página |
 |---|---|---|---|
-| **Hume EVI 4-mini** | ✅ Activo (pt-PT) | pt-PT nativo, prosódia adaptativa, mais rápido | `<HumeWidget />` em `app/page.tsx` |
-| **ElevenLabs ConvAI** | 🟡 Standby | pt-PT (voz Marta), EN, ES, FR, DE | `<LiveKitWidget />` (nome legacy — usa ElevenLabs por baixo) |
-| **LiveKit + Grok Voice (xAI)** | 🟡 Standby (Python) | Realtime end-to-end EN, multilingual experimental | `livekit-agent/agent.py` — deploy separado Railway |
-| **Vapi + Groq Llama** | 🟡 Standby (telefone) | Outbound call (US number) | `/api/call/route.ts` + `/api/vapi/webhook` |
+| **Hume EVI 4-mini** | ✅ Activo | pt-PT nativo, prosódia adaptativa | `/` |
+| **LiveKit + Gemini Live** | ✅ Activo (browser) | Melhor fluxo de conversa, multilíngue, candidato a telefone | `/livekit` |
+| **ElevenLabs ConvAI** | 🟡 Standby | pt-PT (voz Marta), EN, ES, FR, DE | (sem página dedicada) |
+| **Vapi + Groq Llama** | 🟡 Standby | Outbound call (US number) | (form CallMe) |
 
-**Decisão por mercado:**
-- 🇵🇹 pt-PT → Hume EVI 4-mini (sotaque + prosódia + velocidade)
-- 🇺🇸 🇬🇧 EN / outros → ElevenLabs ConvAI (catálogo de vozes maduras)
-- 📞 Outbound telefone US (form "Call Me") → Vapi (mantido até migrar para Telnyx/Twilio SIP)
-- 🧪 Experimentos end-to-end multilingual → LiveKit + Grok Voice
+**Decisão por mercado (Maio 2026):**
+- 🇵🇹 pt-PT browser → Hume EVI 4-mini (sotaque + prosódia nativa)
+- 🌍 Multilíngue / telefone → Gemini Live via LiveKit (`gemini-2.5-flash-native-audio-latest`)
+- 📞 Outbound telefone US → Vapi (mantido até migrar para SIP +351)
+- 📞 PSTN +351 (futuro) → LiveKit SIP + Gemini Live (quando 46elks aprovar conta)
 
 ### Histórico de iterações (resumo)
 
@@ -42,7 +42,8 @@ Todos os caminhos estão **mantidos em código** para permitir A/B, fallback e m
 2. **LiveKit + Grok Voice (xAI Realtime)** — end-to-end real mas sotaque pt-PT fraco
 3. **ElevenLabs ConvAI + voz "Marta" (pt-PT)** — sotaque nativo OK, pipeline (não end-to-end)
 4. **Hume EVI 3 + voz "A Viajante de Alma"** — migração para Hume
-5. **Hume EVI 4-mini + "A Viajante de Alma" + book_meeting tool + WhatsApp** — **estado actual**
+5. **Hume EVI 4-mini + "A Viajante de Alma" + book_meeting tool + WhatsApp** — activo em `/`
+6. **LiveKit + Gemini 2.5 Flash native audio** — activo em `/livekit`; melhor fluxo de conversa; candidato a PSTN quando número +351 disponível
 
 ### Trade-off chave identificado
 
@@ -52,17 +53,24 @@ Em qualquer provedor, **TTS Playground (single-pass)** soa "estúdio" porque ren
 
 ```
 app/
-  page.tsx                              # Landing page — força <HumeWidget />
+  layout.tsx                            # RootLayout — inclui <AgentNav /> (top-right, todas as páginas)
+  page.tsx                              # / → Hume EVI (inclui <AgentNav /> explicitamente)
+  livekit/
+    page.tsx                            # /livekit → Gemini Live via LiveKit
   api/
     hume/access-token/route.ts          # OAuth Hume — fetchAccessToken (server-side)
-    book-meeting/route.ts               # ✅ Tool Hume server-side — cria Calendar event + envia WhatsApp
+    book-meeting/route.ts               # ✅ Tool server-side (Hume + LiveKit) — Calendar + WhatsApp
+    livekit/token/route.ts              # ✅ LiveKit room + dispatch — gera JWT para browser
+    livekit/webhook/route.ts            # LiveKit room events → Supabase calls
     elevenlabs/signed-url/route.ts      # ElevenLabs ConvAI signed URL (standby)
-    vapi/webhook/route.ts               # Vapi event handler (call lifecycle, end-of-call-report)
-    call/route.ts                       # Outbound call via Vapi REST (US only)
-    calendar/route.ts                   # Tool endpoint Vapi — Google Calendar createEvent (standby)
+    vapi/webhook/route.ts               # Vapi event handler (standby)
+    call/route.ts                       # Outbound call via Vapi REST (standby)
+    calendar/route.ts                   # Tool endpoint Vapi — Google Calendar (standby)
 components/
-  HumeWidget.tsx                        # ✅ Activo — usa @humeai/voice-react (VoiceProvider + useVoice)
-  LiveKitWidget.tsx                     # Standby — apesar do nome, usa @elevenlabs/react (legacy naming)
+  AgentNav.tsx                          # ✅ Nav top-right — links entre /  e /livekit (+ futuros)
+  HumeWidget.tsx                        # ✅ Activo em / — usa @humeai/voice-react
+  GeminiLiveWidget.tsx                  # ✅ Activo em /livekit — usa @livekit/components-react
+  LiveKitWidget.tsx                     # Standby — apesar do nome, usa @elevenlabs/react (legacy)
   VapiWidget.tsx                        # Standby — Vapi web SDK
   CallStats.tsx                         # Async server component, revalidate 60s
   CallMeForm.tsx                        # Outbound call trigger
@@ -72,11 +80,11 @@ lib/
   supabase.ts                           # Lazy singleton clients (anon + service_role)
   vapi.ts                               # VapiEvent types + detectLanguage()
   google-calendar.ts                    # Google Calendar service-account (createEvent)
-livekit-agent/                          # Python agent server — fallback Grok Voice end-to-end
-  agent.py                              # AgentSession + RealtimeModel (xAI base_url)
-  system-prompt.txt                     # Prompt Ana pt-PT com regras fonéticas
-  requirements.txt
-  Dockerfile                            # Para Railway deploy se reactivar
+livekit-agent/                          # Python agent — Gemini Live end-to-end
+  agent.py                              # AgentSession + google.beta.realtime.RealtimeModel
+  system-prompt.txt                     # Prompt Ana pt-PT (partilhado com Hume)
+  requirements.txt                      # livekit-agents[google]>=0.12
+  Dockerfile                            # Para Railway/deploy em produção
 supabase/migrations/
   001_calls.sql                         # calls table + RLS public read policy
 ```
@@ -116,6 +124,14 @@ supabase/migrations/
 | `TWILIO_AUTH_TOKEN` | Auth Twilio REST API (`/api/book-meeting`) |
 | `TWILIO_WHATSAPP_TO` | Número destino notificações (`whatsapp:+351931822816`) |
 
+### Activas — Gemini Live (LiveKit)
+| Variable | Where |
+|---|---|
+| `LIVEKIT_URL` | `/api/livekit/token` + Python agent |
+| `LIVEKIT_API_KEY` | `/api/livekit/token` + Python agent |
+| `LIVEKIT_API_SECRET` | `/api/livekit/token` + Python agent + webhook |
+| `GEMINI_API_KEY` | Python agent (`livekit-agent/agent.py`) — service-account-bound key do Google Cloud |
+
 ### Standby (outros provedores)
 | Variable | Where |
 |---|---|
@@ -127,25 +143,36 @@ supabase/migrations/
 | `VAPI_ASSISTANT_ID` | Outbound call payload |
 | `VAPI_PHONE_NUMBER_ID` | Outbound call payload |
 | `NEXT_PUBLIC_PHONE_NUMBER` | Número no landing page |
-| `LIVEKIT_URL` / `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` | LiveKit fallback path |
-| `XAI_API_KEY` | Grok Voice via LiveKit (Python agent) |
+| `XAI_API_KEY` | Grok Voice legacy (substituído por Gemini Live) |
 
 **Vercel:** todas as vars activas estão em Production + Development. Twilio sandbox — para testar localmente enviar `join <palavra-chave>` para `+14155238886` no WhatsApp.
 
-## Como trocar de provedor
+## Como trocar / adicionar provedor
+
+Cada provedor tem a sua própria página. O `AgentNav` em `components/AgentNav.tsx` lista as páginas:
 
 ```tsx
-// app/page.tsx
-import HumeWidget from "@/components/HumeWidget";        // pt-PT activo
-// import LiveKitWidget from "@/components/LiveKitWidget"; // EN / outras línguas (ElevenLabs por baixo)
-// import VapiWidget from "@/components/VapiWidget";       // Vapi legacy
-
-// ...
-
-<HumeWidget />
+const agents = [
+  { label: "Hume EVI", href: "/" },
+  { label: "Gemini Live", href: "/livekit" },
+  // { label: "ElevenLabs", href: "/elevenlabs" },  // adicionar quando criar a página
+];
 ```
 
-Para reactivar caminho **Grok Voice end-to-end** (Python LiveKit agent): deploy `livekit-agent/` via Railway com env vars `XAI_API_KEY`, `LIVEKIT_*`, `CALENDAR_ENDPOINT`, `WEBHOOK_SECRET`.
+Para correr o agente Gemini Live localmente:
+```bash
+cd livekit-agent
+PYTHONUNBUFFERED=1 \
+  LIVEKIT_URL=wss://voice-agent-hfi9y0b7.livekit.cloud \
+  LIVEKIT_API_KEY=... \
+  LIVEKIT_API_SECRET=... \
+  GEMINI_API_KEY=... \
+  CALENDAR_ENDPOINT=https://voice-demo-navy.vercel.app/api/book-meeting \
+  WEBHOOK_SECRET=... \
+  ./venv/bin/python -u agent.py dev
+```
+
+**Atenção — modo `dev`:** reinicia automaticamente em alterações de ficheiro na pasta `livekit-agent/`. Se o worker ficar em loop de reconexão (`failed to connect to livekit` + `unexpected message type: 258`), matar com `pkill -9 -f agent.py` e reiniciar. Em produção usar Railway/systemd com auto-restart.
 
 ## Telefone (futuro)
 
@@ -225,6 +252,23 @@ Tabela única `calls`. Schema em `supabase/migrations/001_calls.sql`. RLS enable
 - **Voice clone vs Octave shared** — ✅ decisão tomada: Octave shared "A Viajante de Alma". Clone perde em streaming; shared aguenta melhor.
 - **WhatsApp Twilio** — ✅ sandbox activo. Para produção real (sem sandbox) precisas de número Twilio com WhatsApp Business aprovado.
 
-## Provedor a acompanhar
+## Gemini Live — referência operacional
 
-**Thinking Machines Lab — "Interaction Models"** (anunciado 11/05/2026). Full-duplex nativo, 0.4s latência, multimodal por design. Hoje em research preview limitado. Candidato natural para substituir Hume EVI 3 quando abrir GA, especialmente se trouxer pt-PT nativo.
+- **Modelo activo:** `gemini-2.5-flash-native-audio-latest` (bidiGenerateContent)
+- **API Key:** service-account-bound key criada no projecto `gen-lang-client-0657432502` (Google Cloud)
+- **Voz:** `Aoede` (configurável no `RealtimeModel`)
+- **Worker:** `livekit-agent/agent.py` — `google.beta.realtime.RealtimeModel`, Python 3.12, venv em `livekit-agent/venv/`
+- **LiveKit project:** `voice-agent-hfi9y0b7.livekit.cloud` (EU West B)
+- **Agent name:** `ana-agent` (deve coincidir entre `WorkerOptions` e `createDispatch`)
+- **Modelos válidos** para bidiGenerateContent nesta key (consultados via API em Maio 2026):
+  - `gemini-2.5-flash-native-audio-latest`
+  - `gemini-2.5-flash-native-audio-preview-12-2025`
+  - `gemini-3.1-flash-live-preview`
+- **Armadilha Python 3.14:** livekit-agents não suporta Python 3.14. Usar Python 3.12 no venv.
+- **Armadilha worker zombie:** após queda de rede, o worker pode registar-se 2× e deixar de atender jobs. `pkill -9 -f agent.py` + restart resolve.
+
+## Provedores a acompanhar
+
+**Thinking Machines Lab — "Interaction Models"** (anunciado 11/05/2026). Full-duplex nativo, 0.4s latência, multimodal por design. Hoje em research preview limitado. Candidato natural para substituir Hume quando abrir GA.
+
+**46elks** — conta registada em Maio 2026, aguarda aprovação. Quando aprovada: comprar número +351 e ligar via LiveKit SIP trunk → Gemini Live agent atende chamadas telefónicas reais.

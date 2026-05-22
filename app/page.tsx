@@ -7,6 +7,7 @@ import PhoneNumber from "@/components/PhoneNumber";
 import CallMeForm from "@/components/CallMeForm";
 import QRCodeImage from "@/components/QRCode";
 import HumeWidget from "@/components/HumeWidget";
+import AgentNav from "@/components/AgentNav";
 
 const PHONE_NUMBER = process.env.NEXT_PUBLIC_PHONE_NUMBER ?? "+351 000 000 000";
 
@@ -23,6 +24,7 @@ export default async function Home({
 
   return (
     <main className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center px-6 py-20">
+      <AgentNav />
       <div className="max-w-xl w-full text-center">
         <Badge
           variant="outline"
