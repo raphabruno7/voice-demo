@@ -2,8 +2,7 @@ import os
 import asyncio
 from pathlib import Path
 from livekit.agents import Agent, AgentSession, JobContext, WorkerOptions, cli, function_tool
-from livekit.plugins.openai import realtime
-from openai.types.realtime.realtime_audio_input_turn_detection import ServerVad
+from livekit.plugins import google
 import httpx
 
 SYSTEM_PROMPT = Path(__file__).parent.joinpath("system-prompt.txt").read_text()
@@ -39,20 +38,12 @@ async def book_meeting(caller_name: str, start_time: str) -> str:
 async def entrypoint(ctx: JobContext):
     await ctx.connect()
 
-    model = realtime.RealtimeModel(
-        model="grok-voice-latest",
-        base_url="https://api.x.ai/v1/realtime",
-        api_key=os.environ["XAI_API_KEY"],
-        voice="eve",
+    model = google.beta.realtime.RealtimeModel(
+        model="gemini-2.5-flash-native-audio-latest",
+        voice="Aoede",
+        api_key=os.environ["GEMINI_API_KEY"],
         instructions=SYSTEM_PROMPT,
         temperature=0.3,
-        max_response_output_tokens=150,
-        turn_detection=ServerVad(
-            type="server_vad",
-            threshold=0.5,
-            prefix_padding_ms=300,
-            silence_duration_ms=500,
-        ),
     )
 
     agent = Agent(
