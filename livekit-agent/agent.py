@@ -3,6 +3,7 @@ import asyncio
 from pathlib import Path
 from livekit.agents import Agent, AgentSession, JobContext, WorkerOptions, cli, function_tool
 from livekit.plugins import google
+from google.genai import types as genai_types
 import httpx
 
 SYSTEM_PROMPT = Path(__file__).parent.joinpath("system-prompt.txt").read_text()
@@ -41,9 +42,17 @@ async def entrypoint(ctx: JobContext):
     model = google.beta.realtime.RealtimeModel(
         model="gemini-2.5-flash-native-audio-latest",
         voice="Aoede",
+        language="pt-PT",
         api_key=os.environ["GEMINI_API_KEY"],
         instructions=SYSTEM_PROMPT,
         temperature=0.3,
+        realtime_input_config=genai_types.RealtimeInputConfig(
+            automatic_activity_detection=genai_types.AutomaticActivityDetection(
+                end_of_speech_sensitivity=genai_types.EndSensitivity.END_SENSITIVITY_HIGH,
+                silence_duration_ms=300,
+                prefix_padding_ms=100,
+            )
+        ),
     )
 
     agent = Agent(
