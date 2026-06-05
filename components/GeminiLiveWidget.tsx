@@ -6,14 +6,13 @@ import {
   RoomAudioRenderer,
   useVoiceAssistant,
   useConnectionState,
-  ConnectionState,
 } from "@livekit/components-react";
 
 function VoiceControls({ onDisconnect }: { onDisconnect: () => void }) {
   const { state } = useVoiceAssistant();
   const connectionState = useConnectionState();
 
-  const isConnected = connectionState === ConnectionState.Connected;
+  const isConnected = connectionState === "connected";
   const agentState = state ?? "connecting";
 
   const statusLabel =
