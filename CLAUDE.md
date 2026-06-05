@@ -251,12 +251,16 @@ Tabela única `calls`. Schema em `supabase/migrations/001_calls.sql`. RLS enable
 - **Velocidade da voz** — ✅ resolvida via `[VOICE DIRECTION: ...]` no system prompt. "Very fast, clipped conversational pace". Não há lever runtime no SDK.
 - **Voice clone vs Octave shared** — ✅ decisão tomada: Octave shared "A Viajante de Alma". Clone perde em streaming; shared aguenta melhor.
 - **WhatsApp Twilio** — ✅ sandbox activo. Para produção real (sem sandbox) precisas de número Twilio com WhatsApp Business aprovado.
+- **SIP Trunk DIDWW** — ✅ Pré-instalação feita em Junho 2026 (`setup_sip.py` criado, scripts prontos). ⏳ **À espera de:** compra do número +351 na DIDWW. Quando número chegar, executar `setup_sip.py` com credenciais DIDWW + número, e configurar SIP destination em DIDWW dashboard para `voice-agent-hfi9y0b7.sip.livekit.cloud:5060`.
 
 ## Gemini Live — referência operacional
 
 - **Modelo activo:** `gemini-2.5-flash-native-audio-latest` (bidiGenerateContent)
 - **API Key:** service-account-bound key criada no projecto `gen-lang-client-0657432502` (Google Cloud)
 - **Voz:** `Aoede` (configurável no `RealtimeModel`)
+- **Linguagem:** `pt-PT` nativo (definido em `agent.py`)
+- **Speech detection:** `realtime_input_config` com `EndSensitivity.END_SENSITIVITY_HIGH`, silence 300ms, prefix padding 100ms
+- **System prompt:** `livekit-agent/system-prompt.txt` — reescrito em português europeu (Lisboa), inclui `[VOICE DIRECTION: ...]` para ritmo conversacional
 - **Worker:** `livekit-agent/agent.py` — `google.beta.realtime.RealtimeModel`, Python 3.12, venv em `livekit-agent/venv/`
 - **LiveKit project:** `voice-agent-hfi9y0b7.livekit.cloud` (EU West B)
 - **Agent name:** `ana-agent` (deve coincidir entre `WorkerOptions` e `createDispatch`)
@@ -267,8 +271,29 @@ Tabela única `calls`. Schema em `supabase/migrations/001_calls.sql`. RLS enable
 - **Armadilha Python 3.14:** livekit-agents não suporta Python 3.14. Usar Python 3.12 no venv.
 - **Armadilha worker zombie:** após queda de rede, o worker pode registar-se 2× e deixar de atender jobs. `pkill -9 -f agent.py` + restart resolve.
 
+### SIP Trunk setup (DIDWW +351)
+
+**Status:** Pré-instalação feita (Junho 2026), aguarda número +351.
+
+- **Script:** `livekit-agent/setup_sip.py` — configura LiveKit inbound SIP trunk + dispatch rule
+- **Quando executar:** após compra do número +351 na DIDWW (currently pending)
+- **Variáveis necessárias:**
+  ```bash
+  PHONE_NUMBER=+351XXXXXXXXX    # Número DIDWW a comprar
+  SIP_USER=<didww-sip-username> # Credenciais DIDWW
+  SIP_PASS=<didww-sip-password>
+  LIVEKIT_URL=wss://voice-agent-hfi9y0b7.livekit.cloud
+  LIVEKIT_API_KEY=...
+  LIVEKIT_API_SECRET=...
+  ```
+- **Resultado:** 
+  - Cria `SIPInboundTrunk` (DIDWW +351) com allowlist de IPs DIDWW
+  - Cria `SIPDispatchRule` que roteia chamadas para `ana-agent` em rooms com prefix `call-`
+- **DIDWW SIP destination** (configurar em DIDWW dashboard): `voice-agent-hfi9y0b7.sip.livekit.cloud:5060`
+- **Permitida lista IPs DIDWW:** `46.19.209.14/32`, `46.19.210.14/32`, `46.19.212.14/32`, `46.19.213.14/32`, `46.19.214.14/32`, `46.19.215.14/32`, `185.238.173.14/32`
+
 ## Provedores a acompanhar
 
 **Thinking Machines Lab — "Interaction Models"** (anunciado 11/05/2026). Full-duplex nativo, 0.4s latência, multimodal por design. Hoje em research preview limitado. Candidato natural para substituir Hume quando abrir GA.
 
-**46elks** — conta registada em Maio 2026, aguarda aprovação. Quando aprovada: comprar número +351 e ligar via LiveKit SIP trunk → Gemini Live agent atende chamadas telefónicas reais.
+**DIDWW +351 30x (telefone)** — ✅ Pré-instalação SIP trunk feita em Junho 2026. ⏳ Aguarda compra do número. Uma vez comprado: executar `setup_sip.py` + configurar SIP destination em DIDWW → Gemini Live agent atende chamadas telefónicas pt-PT reais via LiveKit SIP inbound trunk.
