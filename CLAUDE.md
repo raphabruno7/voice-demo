@@ -131,6 +131,9 @@ supabase/migrations/
 | `LIVEKIT_API_KEY` | `/api/livekit/token` + Python agent |
 | `LIVEKIT_API_SECRET` | `/api/livekit/token` + Python agent + webhook |
 | `GEMINI_API_KEY` | Python agent (`livekit-agent/agent.py`) — service-account-bound key do Google Cloud |
+| `TRANSFER_TO_NUMBER` | Python agent — destino do warm transfer SIP. Default `+351931822816` |
+| `TRANSFER_FALLBACK_ENDPOINT` | Python agent — URL de `/api/transfer-fallback` (opcional; sem ela, falha de transfer só fica em log) |
+| `WEBHOOK_SECRET` | Reutilizada por `/api/transfer-fallback` (header `x-vapi-secret`), além de `book_meeting` |
 
 ### Standby (outros provedores)
 | Variable | Where |
@@ -252,6 +255,7 @@ Tabela única `calls`. Schema em `supabase/migrations/001_calls.sql`. RLS enable
 - **Voice clone vs Octave shared** — ✅ decisão tomada: Octave shared "A Viajante de Alma". Clone perde em streaming; shared aguenta melhor.
 - **WhatsApp Twilio** — ✅ sandbox activo. Para produção real (sem sandbox) precisas de número Twilio com WhatsApp Business aprovado.
 - **SIP Trunk DIDWW** — ✅ Pré-instalação feita em Junho 2026 (`setup_sip.py` criado, scripts prontos). ⏳ **À espera de:** compra do número +351 na DIDWW. Quando número chegar, executar `setup_sip.py` com credenciais DIDWW + número, e configurar SIP destination em DIDWW dashboard para `voice-agent-hfi9y0b7.sip.livekit.cloud:5060`.
+- **Warm transfer (`transfer_to_human`)** — ✅ Implementado em `agent.py` + `/api/transfer-fallback`. ⏳ **À espera de:** número +351 ativo para testar `ctx.transfer_sip_participant` em chamada real e confirmar se a DIDWW suporta REFER. Até lá, testável via `lk sip participant create` (trunk de teste) ou cai no fallback WhatsApp.
 
 ## Gemini Live — referência operacional
 
@@ -270,6 +274,14 @@ Tabela única `calls`. Schema em `supabase/migrations/001_calls.sql`. RLS enable
   - `gemini-3.1-flash-live-preview`
 - **Armadilha Python 3.14:** livekit-agents não suporta Python 3.14. Usar Python 3.12 no venv.
 - **Armadilha worker zombie:** após queda de rede, o worker pode registar-se 2× e deixar de atender jobs. `pkill -9 -f agent.py` + restart resolve.
+
+### Warm transfer (`transfer_to_human`)
+
+- **Tool:** `transfer_to_human(reason)` em `agent.py`, definida como closure dentro de `entrypoint` (precisa de `ctx`).
+- **Como funciona:** deteta o participante SIP da room (`_find_sip_participant`) e chama `ctx.transfer_sip_participant(participant, TRANSFER_TO_NUMBER, play_dialtone=True)`.
+- **Sessões de browser (sem SIP):** a tool devolve mensagem indicando que não é chamada telefónica; a Ana continua a conversa sem mencionar a tentativa.
+- **Fallback:** se o transfer falhar (ex: trunk DIDWW sem REFER habilitado), faz POST para `TRANSFER_FALLBACK_ENDPOINT` (`/api/transfer-fallback`) que envia WhatsApp com o número do chamador e o motivo, para callback manual.
+- **Pendente de validação real:** se a DIDWW suporta REFER por defeito (só testável depois da compra do número +351), e se `transfer_to` precisa do prefixo `tel:` em vez de E.164 simples — ajustar `TRANSFER_TO_NUMBER` se necessário após o primeiro teste com chamada real.
 
 ### SIP Trunk setup (DIDWW +351)
 
