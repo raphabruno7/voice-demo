@@ -172,6 +172,7 @@ PYTHONUNBUFFERED=1 \
   GEMINI_API_KEY=... \
   CALENDAR_ENDPOINT=https://voice-demo-navy.vercel.app/api/book-meeting \
   WEBHOOK_SECRET=... \
+  TRANSFER_FALLBACK_ENDPOINT=https://voice-demo-navy.vercel.app/api/transfer-fallback \
   ./venv/bin/python -u agent.py dev
 ```
 
