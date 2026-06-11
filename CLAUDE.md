@@ -368,7 +368,8 @@ Production URL: `voice-demo-navy.vercel.app`
 
 ### Fluxo end-to-end
 
-1. **Cron (`app/api/cron/outbound-calls/route.ts`, `vercel.json` → `*/30 * * * *`):**
+1. **Cron (`app/api/cron/outbound-calls/route.ts`, `vercel.json` → `30 9 * * *`):**
+   - **⚠️ Vercel Hobby plan só permite crons diários** — por isso o schedule é 1x/dia (09:30 UTC, dentro da janela `CALL_HOURS_*`), em vez do `*/30 * * * *` original. Isto limita a `MAX_OUTBOUND_CALLS_PER_RUN` chamadas/dia (default 3); se for preciso mais, ajustar esse env var ou fazer upgrade para Pro.
    - Auth: `Authorization: Bearer ${CRON_SECRET}` (enviado pelo Vercel Cron).
    - Verifica janela horária (`CALL_HOURS_START`–`CALL_HOURS_END`, default 9–19 Europe/Lisbon) — fora da janela, não faz nada.
    - `listUpcomingEvents` (Google Calendar) na janela `[agora + REMINDER_WINDOW_START_H, agora + REMINDER_WINDOW_END_H]` (default 20–28h = "marcações de amanhã").

@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/outbound-calls",
-      "schedule": "*/30 * * * *"
+      "schedule": "30 9 * * *"
     }
   ]
 }
