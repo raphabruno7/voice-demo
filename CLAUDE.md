@@ -66,6 +66,13 @@ app/
     vapi/webhook/route.ts               # Vapi event handler (standby)
     call/route.ts                       # Outbound call via Vapi REST (standby)
     calendar/route.ts                   # Tool endpoint Vapi — Google Calendar (standby)
+    transfer-fallback/route.ts          # ✅ WhatsApp fallback quando transfer_to_human falha
+    cron/outbound-calls/route.ts        # ✅ Vercel Cron — dispara chamadas de confirmação de marcações
+    appointments/
+      confirm/route.ts                  # ✅ Tool agente — confirma marcação
+      reschedule/route.ts               # ✅ Tool agente — remarca marcação (Google Calendar)
+      cancel/route.ts                   # ✅ Tool agente — cancela marcação (Google Calendar)
+      opt-out/route.ts                  # ✅ Tool agente — regista opt-out de chamadas automáticas
 components/
   AgentNav.tsx                          # ✅ Nav top-right — links entre /  e /livekit (+ futuros)
   HumeWidget.tsx                        # ✅ Activo em / — usa @humeai/voice-react
@@ -79,17 +86,24 @@ components/
 lib/
   supabase.ts                           # Lazy singleton clients (anon + service_role)
   vapi.ts                               # VapiEvent types + detectLanguage()
-  google-calendar.ts                    # Google Calendar service-account (createEvent)
+  google-calendar.ts                    # Google Calendar service-account — createEvent (com extendedProperties.private.phone), listUpcomingEvents, updateEventTime, cancelEvent
+  whatsapp.ts                           # ✅ sendWhatsApp — bridge OpenClaw com fallback Twilio (extraído de book-meeting/transfer-fallback)
+  appointments.ts                       # ✅ getOutboundAppointment — lookup em outbound_appointments (Supabase)
+  format.ts                             # ✅ formatPtDateTime — formata ISO datetime em pt-PT (TS, usado nas rotas de appointments)
+  livekit-outbound.ts                   # ✅ triggerOutboundCall — cria room + dispatch ana-agent + SIP dial outbound (chamadas de confirmação)
 livekit-agent/                          # Python agent — Gemini Live end-to-end
-  agent.py                              # AgentSession + google.beta.realtime.RealtimeModel
+  agent.py                              # AgentSession + google.beta.realtime.RealtimeModel — branch inbound vs confirmation via job metadata
   arcus_lookup.py                       # ✅ Lookup/registo de leads no Arcus CRM (contexto dinâmico por chamada)
   niches.json                           # Cópia versionada de easy-leads-ai/niches.json (sync manual)
   test_arcus_lookup.py                  # Script manual: testar lookup_by_phone/by_name contra Arcus real
-  system-prompt.txt                     # Prompt Ana pt-PT (partilhado com Hume)
+  system-prompt.txt                     # Prompt Ana pt-PT (partilhado com Hume) — chamadas inbound/demo
+  system-prompt-confirmation.txt        # ✅ Prompt Ana pt-PT — chamadas outbound de confirmação/remarcação/cancelamento
   requirements.txt                      # livekit-agents[google]>=0.12
   Dockerfile                            # Para Railway/deploy em produção
 supabase/migrations/
   001_calls.sql                         # calls table + RLS public read policy
+  003_outbound_appointments.sql         # ✅ outbound_appointments table — sem policy de leitura pública (PII)
+vercel.json                             # ✅ Vercel Cron — /api/cron/outbound-calls a cada 30min
 ```
 
 ## Key patterns
@@ -140,6 +154,20 @@ supabase/migrations/
 | `ARCUS_SUPABASE_URL` | Python agent (`arcus_lookup.py`) — Supabase REST do Arcus CRM |
 | `ARCUS_SUPABASE_KEY` | Python agent (`arcus_lookup.py`) — service role/anon key do Arcus |
 | `ARCUS_ORG_ID` | Python agent (`arcus_lookup.py`) — default `c4669ad5-e6b2-41ed-9c51-c09dfbec17f9` |
+| `OUTBOUND_TRUNK_ID` | Python agent — trunk outbound LiveKit (criado por `setup_sip.py`). Sem ela, transfer cai para blind SIP REFER (sem deteção de voicemail) |
+| `TRANSFER_RING_TIMEOUT_S` | Python agent — segundos a tocar antes de considerar voicemail/sem resposta. Default `20` |
+| `TRANSFER_CALLER_ID_NAME` | Python agent — display name SIP mostrado ao Raphael na chamada de transfer. Default `Ana - Voice Demo` |
+
+### Activas — Outbound confirmation calls ("Ana liga-te")
+| Variable | Where | Default |
+|---|---|---|
+| `CRON_SECRET` | `/api/cron/outbound-calls` — valida `Authorization: Bearer ${CRON_SECRET}` enviado pelo Vercel Cron | — (obrigatório) |
+| `MAX_OUTBOUND_CALLS_PER_RUN` | Cron — cap de chamadas disparadas por execução (protege reputação do número) | `3` |
+| `MAX_REMINDER_ATTEMPTS` | Cron — máximo de tentativas de chamada por marcação | `1` |
+| `REMINDER_WINDOW_START_H` / `REMINDER_WINDOW_END_H` | Cron — janela de marcações a confirmar, em horas a partir de agora (default = "marcações de amanhã") | `20` / `28` |
+| `CALL_HOURS_START` / `CALL_HOURS_END` | Cron — janela horária (Europe/Lisbon) em que é permitido ligar | `9` / `19` |
+
+Reutiliza `OUTBOUND_TRUNK_ID`, `TRANSFER_RING_TIMEOUT_S`, `TRANSFER_CALLER_ID_NAME` (já documentadas acima) e `WEBHOOK_SECRET` (auth `x-vapi-secret` nos endpoints `/api/appointments/*`, mesmo padrão do `book_meeting`/`transfer-fallback`).
 
 ### Standby (outros provedores)
 | Variable | Where |
@@ -181,8 +209,11 @@ PYTHONUNBUFFERED=1 \
   TRANSFER_FALLBACK_ENDPOINT=https://voice-demo-navy.vercel.app/api/transfer-fallback \
   ARCUS_SUPABASE_URL=... \
   ARCUS_SUPABASE_KEY=... \
+  OUTBOUND_TRUNK_ID=... \
   ./venv/bin/python -u agent.py dev
 ```
+
+`OUTBOUND_TRUNK_ID` é opcional — sem ela, `transfer_to_human` usa blind SIP REFER (sem deteção de voicemail). `TRANSFER_RING_TIMEOUT_S` (default 20) e `TRANSFER_CALLER_ID_NAME` (default "Ana - Voice Demo") também são opcionais.
 
 **Atenção — modo `dev`:** reinicia automaticamente em alterações de ficheiro na pasta `livekit-agent/`. Se o worker ficar em loop de reconexão (`failed to connect to livekit` + `unexpected message type: 258`), matar com `pkill -9 -f agent.py` e reiniciar. Em produção usar Railway/systemd com auto-restart.
 
@@ -227,7 +258,8 @@ Production URL: `voice-demo-navy.vercel.app`
 
 ## Database
 
-Tabela única `calls`. Schema em `supabase/migrations/001_calls.sql`. RLS enabled — public SELECT, writes só via service_role key (webhook).
+- **`calls`** — Schema em `supabase/migrations/001_calls.sql`. RLS enabled — public SELECT, writes só via service_role key (webhook). Dados são sobre o próprio negócio do Raphael (demo), por isso leitura pública é aceitável.
+- **`outbound_appointments`** — Schema em `supabase/migrations/003_outbound_appointments.sql`. RLS enabled, **sem policy de leitura pública** — diferente de `calls`, esta tabela contém PII real de clientes de terceiros (nome, telefone, marcação) das clínicas/imobiliárias. Apenas `service_role` (API routes) lê/escreve. Estados (`reminder_status`): `pending`, `called`, `confirmed`, `rescheduled`, `cancelled`, `no_answer`, `failed`, `opted_out`.
 
 ## Hume EVI config (referência operacional)
 
@@ -263,8 +295,11 @@ Tabela única `calls`. Schema em `supabase/migrations/001_calls.sql`. RLS enable
 - **Velocidade da voz** — ✅ resolvida via `[VOICE DIRECTION: ...]` no system prompt. "Very fast, clipped conversational pace". Não há lever runtime no SDK.
 - **Voice clone vs Octave shared** — ✅ decisão tomada: Octave shared "A Viajante de Alma". Clone perde em streaming; shared aguenta melhor.
 - **WhatsApp Twilio** — ✅ sandbox activo. Para produção real (sem sandbox) precisas de número Twilio com WhatsApp Business aprovado.
-- **SIP Trunk DIDWW** — ✅ Pré-instalação feita em Junho 2026 (`setup_sip.py` criado, scripts prontos). ⏳ **À espera de:** compra do número +351 na DIDWW. Quando número chegar, executar `setup_sip.py` com credenciais DIDWW + número, e configurar SIP destination em DIDWW dashboard para `voice-agent-hfi9y0b7.sip.livekit.cloud:5060`.
-- **Warm transfer (`transfer_to_human`)** — ✅ Implementado em `agent.py` + `/api/transfer-fallback`. ⏳ **À espera de:** número +351 ativo para testar `ctx.transfer_sip_participant` em chamada real e confirmar se a DIDWW suporta REFER. Até lá, testável via `lk sip participant create` (trunk de teste) ou cai no fallback WhatsApp.
+- **SIP Trunk DIDWW** — ✅ Pré-instalação feita em Junho 2026 (`setup_sip.py` criado, inclui inbound + outbound trunk). ⏳ **À espera de:** compra do número +351 na DIDWW. Quando número chegar, executar `setup_sip.py` com credenciais DIDWW + número (+ `DIDWW_OUTBOUND_ADDRESS` para activar outbound), e configurar SIP destination em DIDWW dashboard para `voice-agent-hfi9y0b7.sip.livekit.cloud:5060`.
+- **Warm transfer (`transfer_to_human`)** — ✅ Implementado em `agent.py` (attended transfer com `wait_until_answered` + deteção de voicemail/no-answer via `ringing_timeout`, fallback blind REFER, fallback WhatsApp via `/api/transfer-fallback`). ⏳ **À espera de:** número +351 + `OUTBOUND_TRUNK_ID` (de `setup_sip.py`) para teste end-to-end real e confirmar comportamento da DIDWW com `create_sip_participant`/REFER.
+- **Concorrência** — ✅ `WorkerOptions` afinado (`num_idle_processes=2`, `load_threshold=0.75`) para chamadas concorrentes sem latência de arranque.
+- **Branded caller ID (CNAM)** — ✅ `setup_sip.py` aceita `DIDWW_OUTBOUND_ADDRESS` e cria outbound trunk; `TRANSFER_CALLER_ID_NAME` define o display name SIP. ⏳ **À espera de:** registo CNAM do número +351 no dashboard DIDWW (manual, após compra do número).
+- **Outbound confirmation calls ("Ana liga-te")** — ✅ Código completo (Junho 2026): migration `outbound_appointments`, `lib/google-calendar.ts` (`listUpcomingEvents`/`updateEventTime`/`cancelEvent`), `lib/livekit-outbound.ts` (`triggerOutboundCall`), cron `/api/cron/outbound-calls` (+ `vercel.json`), endpoints `/api/appointments/{confirm,reschedule,cancel,opt-out}`, branch em `agent.py` + `system-prompt-confirmation.txt`. Ver secção dedicada "Outbound — confirmação/remarcação/cancelamento de marcações" abaixo. ⏳ **À espera de:** (1) número +351 + `OUTBOUND_TRUNK_ID` para teste SIP outbound real (mesmo caveat do warm transfer); (2) `CRON_SECRET` configurado em Vercel para activar o cron; (3) **decisão de negócio do Raphael por cada cliente (clínica/imobiliária)** sobre base legal GDPR e divulgação aos próprios clientes finais antes de activar chamadas automáticas em produção real — o código cumpre a divulgação de IA (Art. 50 AI Act) e o opt-out, mas a base legal/consentimento é responsabilidade do negócio que usa a Ana, não algo que o código resolve sozinho.
 
 ## Gemini Live — referência operacional
 
@@ -287,22 +322,34 @@ Tabela única `calls`. Schema em `supabase/migrations/001_calls.sql`. RLS enable
 ### Warm transfer (`transfer_to_human`)
 
 - **Tool:** `transfer_to_human(reason)` em `agent.py`, definida como closure dentro de `entrypoint` (precisa de `ctx`).
-- **Como funciona:** deteta o participante SIP da room (`_find_sip_participant`) e chama `ctx.transfer_sip_participant(participant, TRANSFER_TO_NUMBER, play_dialtone=True)`.
+- **Modo attended (com `OUTBOUND_TRUNK_ID` definido) — recomendado:**
+  - A Ana fica na chamada e disca para `TRANSFER_TO_NUMBER` via `lkapi.sip.create_sip_participant(..., wait_until_answered=True, ringing_timeout=TRANSFER_RING_TIMEOUT_S)`.
+  - **Se o Raphael atender:** entra na mesma room que o chamador (ambos os SIP legs ouvem-se directamente via mix da room). A Ana diz uma frase breve de despedida e sai (`ctx.shutdown()`, com 4s de atraso para não cortar a fala).
+  - **Se não atender (voicemail / timeout / ocupado):** `create_sip_participant` lança `TwirpError` — a Ana **nunca chega a tocar no leg do chamador**, cai directo no fallback WhatsApp.
+  - **Caller ID:** `display_name=TRANSFER_CALLER_ID_NAME` (default "Ana - Voice Demo") no SIP `From`. Passthrough do nome depende do CNAM da DIDWW (ver secção SIP Trunk abaixo).
+- **Modo blind (sem `OUTBOUND_TRUNK_ID`):** fallback para `ctx.transfer_sip_participant(participant, TRANSFER_TO_NUMBER, play_dialtone=True)` (SIP REFER directo, sem deteção de voicemail/no-answer).
 - **Sessões de browser (sem SIP):** a tool devolve mensagem indicando que não é chamada telefónica; a Ana continua a conversa sem mencionar a tentativa.
-- **Fallback:** se o transfer falhar (ex: trunk DIDWW sem REFER habilitado), faz POST para `TRANSFER_FALLBACK_ENDPOINT` (`/api/transfer-fallback`) que envia WhatsApp com o número do chamador e o motivo, para callback manual.
-- **Pendente de validação real:** se a DIDWW suporta REFER por defeito (só testável depois da compra do número +351), e se `transfer_to` precisa do prefixo `tel:` em vez de E.164 simples — ajustar `TRANSFER_TO_NUMBER` se necessário após o primeiro teste com chamada real.
+- **Fallback WhatsApp:** em qualquer caso de falha (voicemail, erro técnico, REFER falhou), POST para `TRANSFER_FALLBACK_ENDPOINT` (`/api/transfer-fallback`) com `callerPhone` + `reason`.
+- **Pendente de validação real:** todo o fluxo (attended + blind) só é testável com chamada SIP real, após a compra do número +351 (ver "Pendentes" abaixo).
+
+### Concorrência (`WorkerOptions`)
+
+- `num_idle_processes=2` — mantém 2 processos Python "quentes" (modelo Gemini Live já carregado) prontos a aceitar jobs, evitando latência de arranque em chamadas concorrentes.
+- `load_threshold=0.75` — acima de 75% de carga média, o worker para de aceitar novos jobs (LiveKit redistribui para outro worker, se existir).
+- Estado já era seguro para concorrência (sem globals partilhados — tudo dentro de `entrypoint`/closures por job); isto só afina alocação de recursos. Em Railway, cada processo idle consome memória com o modelo carregado — ajustar `num_idle_processes` conforme RAM disponível no plano.
 
 ### SIP Trunk setup (DIDWW +351)
 
 **Status:** Pré-instalação feita (Junho 2026), aguarda número +351.
 
-- **Script:** `livekit-agent/setup_sip.py` — configura LiveKit inbound SIP trunk + dispatch rule
+- **Script:** `livekit-agent/setup_sip.py` — configura LiveKit inbound SIP trunk + dispatch rule + (opcional) outbound trunk para warm transfer
 - **Quando executar:** após compra do número +351 na DIDWW (currently pending)
 - **Variáveis necessárias:**
   ```bash
   PHONE_NUMBER=+351XXXXXXXXX    # Número DIDWW a comprar
   SIP_USER=<didww-sip-username> # Credenciais DIDWW
   SIP_PASS=<didww-sip-password>
+  DIDWW_OUTBOUND_ADDRESS=<didww-outbound-sip-host>  # opcional — activa outbound trunk (warm transfer)
   LIVEKIT_URL=wss://voice-agent-hfi9y0b7.livekit.cloud
   LIVEKIT_API_KEY=...
   LIVEKIT_API_SECRET=...
@@ -310,8 +357,50 @@ Tabela única `calls`. Schema em `supabase/migrations/001_calls.sql`. RLS enable
 - **Resultado:** 
   - Cria `SIPInboundTrunk` (DIDWW +351) com allowlist de IPs DIDWW
   - Cria `SIPDispatchRule` que roteia chamadas para `ana-agent` em rooms com prefix `call-`
+  - Se `DIDWW_OUTBOUND_ADDRESS` definido, cria `SIPOutboundTrunk` — o `sip_trunk_id` resultante vai para `OUTBOUND_TRUNK_ID` no deploy do agent (activa attended transfer)
 - **DIDWW SIP destination** (configurar em DIDWW dashboard): `voice-agent-hfi9y0b7.sip.livekit.cloud:5060`
 - **Permitida lista IPs DIDWW:** `46.19.209.14/32`, `46.19.210.14/32`, `46.19.212.14/32`, `46.19.213.14/32`, `46.19.214.14/32`, `46.19.215.14/32`, `185.238.173.14/32`
+- **Branded caller ID (CNAM):** registar nome (ex: "Ana - Raphael Bruno") para o número +351 em DIDWW dashboard → Numbers → CNAM/Caller ID. Sem registo, `TRANSFER_CALLER_ID_NAME` pode não aparecer no telefone do Raphael (depende de passthrough da operadora).
+
+## Outbound — confirmação/remarcação/cancelamento de marcações ("Ana liga-te")
+
+**Objectivo:** a Ana liga proactivamente a clientes de clínicas/imobiliárias para confirmar a marcação do dia seguinte, reduzindo no-shows sem trabalho manual da recepção. Cliente pode confirmar, pedir para remarcar, cancelar, ou pedir para não receber mais chamadas (opt-out). **Estado: código completo, à espera do número +351 (`OUTBOUND_TRUNK_ID`) e de `CRON_SECRET` para activação real** — mesmo padrão "pronto, à espera do número" do warm transfer.
+
+### Fluxo end-to-end
+
+1. **Cron (`app/api/cron/outbound-calls/route.ts`, `vercel.json` → `*/30 * * * *`):**
+   - Auth: `Authorization: Bearer ${CRON_SECRET}` (enviado pelo Vercel Cron).
+   - Verifica janela horária (`CALL_HOURS_START`–`CALL_HOURS_END`, default 9–19 Europe/Lisbon) — fora da janela, não faz nada.
+   - `listUpcomingEvents` (Google Calendar) na janela `[agora + REMINDER_WINDOW_START_H, agora + REMINDER_WINDOW_END_H]` (default 20–28h = "marcações de amanhã").
+   - `upsert` em `outbound_appointments` por `calendar_event_id` (idempotente — não duplica em execuções sobrepostas). Eventos sem telefone (`extendedProperties.private.phone` vazio) ficam registados com `outcome_notes='sem telefone — não é possível ligar'` e nunca são candidatos a chamada.
+   - Selecciona candidatos: `reminder_status='pending'`, `reminder_attempts < MAX_REMINDER_ATTEMPTS`, com telefone, dentro da janela — limitado a `MAX_OUTBOUND_CALLS_PER_RUN` (default 3, protege reputação do número novo).
+   - Para cada candidato: `triggerOutboundCall` (`lib/livekit-outbound.ts`). Sucesso → `reminder_status='called'`. Falha (sem `OUTBOUND_TRUNK_ID`, no-answer, erro SIP) → `reminder_status='no_answer'`, WhatsApp para a clínica avisar para contacto manual.
+
+2. **`triggerOutboundCall` (`lib/livekit-outbound.ts`):**
+   - Cria room `outbound-{appointmentId}` (`RoomServiceClient.createRoom`).
+   - `AgentDispatchClient.createDispatch(roomName, 'ana-agent', { metadata: JSON.stringify({ callType: 'confirmation', appointmentId, calendarEventId, clientName, appointmentAt, businessType }) })`.
+   - `SipClient.createSipParticipant(OUTBOUND_TRUNK_ID, clientPhone, roomName, { waitUntilAnswered: true, ringingTimeout: TRANSFER_RING_TIMEOUT_S, displayName: TRANSFER_CALLER_ID_NAME, playDialtone: true })` — mesmo padrão de detecção de voicemail/no-answer do warm transfer.
+
+3. **Python agent (`livekit-agent/agent.py`):**
+   - `entrypoint` lê `ctx.job.metadata` (JSON). Se `callType == "confirmation"`, usa `CONFIRMATION_PROMPT_TEMPLATE` (`system-prompt-confirmation.txt`) com placeholders `{client_name}`/`{appointment_time}`/`{business_type}` substituídos, e regista os tools `confirm_appointment`, `reschedule_appointment`, `cancel_appointment`, `opt_out` (em vez de `book_meeting`/`transfer_to_human`).
+   - Saudação obrigatória inclui divulgação de IA + chamada automática (EU AI Act Art. 50): "Boa tarde, fala a Ana, assistente virtual. É só uma chamada automática para confirmar a sua marcação de [dia/hora]. Vai poder comparecer?"
+   - `_format_pt_datetime` formata o ISO datetime em pt-PT ("terça-feira, 16 de junho, às 15:00").
+
+4. **Tools do agente → endpoints (`app/api/appointments/*`, auth `x-vapi-secret == WEBHOOK_SECRET`, sempre devolvem 200):**
+   - `confirm_appointment` → `/api/appointments/confirm` → `reminder_status='confirmed'` + WhatsApp.
+   - `reschedule_appointment(new_start_time)` → `/api/appointments/reschedule` → `updateEventTime` no Google Calendar + `appointment_at`/`reminder_status='rescheduled'` + WhatsApp.
+   - `cancel_appointment(reason?)` → `/api/appointments/cancel` → `cancelEvent` no Google Calendar + `reminder_status='cancelled'` + WhatsApp.
+   - `opt_out` → `/api/appointments/opt-out` → `reminder_status='opted_out'` + WhatsApp (cron nunca mais volta a tentar — `reminder_status != 'pending'`).
+
+### Compliance / riscos (Junho 2026)
+
+- **EU AI Act Art. 50** — divulgação obrigatória de IA + chamada automática na primeira frase (`system-prompt-confirmation.txt`, secção "DIVULGAÇÃO OBRIGATÓRIA").
+- **GDPR/ePrivacy** — só liga a clientes existentes sobre a própria marcação (legitimate interest/execução de contrato), nunca marketing. **Responsabilidade de cada clínica/imobiliária** ter base legal/consentimento dos seus clientes — não é resolvido pelo código (ver "Pendentes").
+- **Opt-out** — `opt_out` regista `reminder_status='opted_out'`, respeitado pelo cron indefinidamente.
+- **Janela horária + cap de volume + sem retries agressivos** — protege reputação do número +351 novo (`CALL_HOURS_*`, `MAX_OUTBOUND_CALLS_PER_RUN`, `MAX_REMINDER_ATTEMPTS`).
+- **Voicemail/AMD** — `wait_until_answered` não é 100% fiável; mitigação adicional no prompt (secção "SILÊNCIO/VOICEMAIL" — despede-se em poucos segundos se não houver resposta, em vez de "falar para o vazio").
+- **Idempotência** — `upsert` por `calendar_event_id` único evita ligar 2× para a mesma marcação.
+- **PII** — `outbound_appointments` sem RLS pública (ver "Database").
 
 ## Contexto dinâmico do lead (Arcus CRM) — Junho 2026
 
@@ -345,4 +434,4 @@ A Ana identifica quem está a ligar e personaliza a conversa por chamada (não h
 
 **Thinking Machines Lab — "Interaction Models"** (anunciado 11/05/2026). Full-duplex nativo, 0.4s latência, multimodal por design. Hoje em research preview limitado. Candidato natural para substituir Hume quando abrir GA.
 
-**DIDWW +351 30x (telefone)** — ✅ Pré-instalação SIP trunk feita em Junho 2026. ⏳ Aguarda compra do número. Uma vez comprado: executar `setup_sip.py` + configurar SIP destination em DIDWW → Gemini Live agent atende chamadas telefónicas pt-PT reais via LiveKit SIP inbound trunk.
+**DIDWW +351 30x (telefone)** — ✅ Pré-instalação SIP trunk feita em Junho 2026 (inbound + outbound + warm transfer com deteção de voicemail, todos prontos em código). ⏳ Aguarda compra do número. Uma vez comprado: executar `setup_sip.py` + configurar SIP destination em DIDWW → Gemini Live agent atende chamadas telefónicas pt-PT reais via LiveKit SIP inbound trunk, com transferência para humano quando necessário.
