@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/outbound-calls",
+      "schedule": "*/30 * * * *"
+    }
+  ]
+}
