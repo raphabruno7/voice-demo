@@ -134,6 +134,9 @@ supabase/migrations/
 | `TRANSFER_TO_NUMBER` | Python agent — destino do warm transfer SIP. Default `+351931822816` |
 | `TRANSFER_FALLBACK_ENDPOINT` | Python agent — URL de `/api/transfer-fallback` (opcional; sem ela, falha de transfer só fica em log) |
 | `WEBHOOK_SECRET` | Reutilizada por `/api/transfer-fallback` (header `x-vapi-secret`), além de `book_meeting` |
+| `OUTBOUND_TRUNK_ID` | Python agent — trunk outbound LiveKit (criado por `setup_sip.py`). Sem ela, transfer cai para blind SIP REFER (sem deteção de voicemail) |
+| `TRANSFER_RING_TIMEOUT_S` | Python agent — segundos a tocar antes de considerar voicemail/sem resposta. Default `20` |
+| `TRANSFER_CALLER_ID_NAME` | Python agent — display name SIP mostrado ao Raphael na chamada de transfer. Default `Ana - Voice Demo` |
 
 ### Standby (outros provedores)
 | Variable | Where |
@@ -173,8 +176,11 @@ PYTHONUNBUFFERED=1 \
   CALENDAR_ENDPOINT=https://voice-demo-navy.vercel.app/api/book-meeting \
   WEBHOOK_SECRET=... \
   TRANSFER_FALLBACK_ENDPOINT=https://voice-demo-navy.vercel.app/api/transfer-fallback \
+  OUTBOUND_TRUNK_ID=... \
   ./venv/bin/python -u agent.py dev
 ```
+
+`OUTBOUND_TRUNK_ID` é opcional — sem ela, `transfer_to_human` usa blind SIP REFER (sem deteção de voicemail). `TRANSFER_RING_TIMEOUT_S` (default 20) e `TRANSFER_CALLER_ID_NAME` (default "Ana - Voice Demo") também são opcionais.
 
 **Atenção — modo `dev`:** reinicia automaticamente em alterações de ficheiro na pasta `livekit-agent/`. Se o worker ficar em loop de reconexão (`failed to connect to livekit` + `unexpected message type: 258`), matar com `pkill -9 -f agent.py` e reiniciar. Em produção usar Railway/systemd com auto-restart.
 
@@ -255,8 +261,10 @@ Tabela única `calls`. Schema em `supabase/migrations/001_calls.sql`. RLS enable
 - **Velocidade da voz** — ✅ resolvida via `[VOICE DIRECTION: ...]` no system prompt. "Very fast, clipped conversational pace". Não há lever runtime no SDK.
 - **Voice clone vs Octave shared** — ✅ decisão tomada: Octave shared "A Viajante de Alma". Clone perde em streaming; shared aguenta melhor.
 - **WhatsApp Twilio** — ✅ sandbox activo. Para produção real (sem sandbox) precisas de número Twilio com WhatsApp Business aprovado.
-- **SIP Trunk DIDWW** — ✅ Pré-instalação feita em Junho 2026 (`setup_sip.py` criado, scripts prontos). ⏳ **À espera de:** compra do número +351 na DIDWW. Quando número chegar, executar `setup_sip.py` com credenciais DIDWW + número, e configurar SIP destination em DIDWW dashboard para `voice-agent-hfi9y0b7.sip.livekit.cloud:5060`.
-- **Warm transfer (`transfer_to_human`)** — ✅ Implementado em `agent.py` + `/api/transfer-fallback`. ⏳ **À espera de:** número +351 ativo para testar `ctx.transfer_sip_participant` em chamada real e confirmar se a DIDWW suporta REFER. Até lá, testável via `lk sip participant create` (trunk de teste) ou cai no fallback WhatsApp.
+- **SIP Trunk DIDWW** — ✅ Pré-instalação feita em Junho 2026 (`setup_sip.py` criado, inclui inbound + outbound trunk). ⏳ **À espera de:** compra do número +351 na DIDWW. Quando número chegar, executar `setup_sip.py` com credenciais DIDWW + número (+ `DIDWW_OUTBOUND_ADDRESS` para activar outbound), e configurar SIP destination em DIDWW dashboard para `voice-agent-hfi9y0b7.sip.livekit.cloud:5060`.
+- **Warm transfer (`transfer_to_human`)** — ✅ Implementado em `agent.py` (attended transfer com `wait_until_answered` + deteção de voicemail/no-answer via `ringing_timeout`, fallback blind REFER, fallback WhatsApp via `/api/transfer-fallback`). ⏳ **À espera de:** número +351 + `OUTBOUND_TRUNK_ID` (de `setup_sip.py`) para teste end-to-end real e confirmar comportamento da DIDWW com `create_sip_participant`/REFER.
+- **Concorrência** — ✅ `WorkerOptions` afinado (`num_idle_processes=2`, `load_threshold=0.75`) para chamadas concorrentes sem latência de arranque.
+- **Branded caller ID (CNAM)** — ✅ `setup_sip.py` aceita `DIDWW_OUTBOUND_ADDRESS` e cria outbound trunk; `TRANSFER_CALLER_ID_NAME` define o display name SIP. ⏳ **À espera de:** registo CNAM do número +351 no dashboard DIDWW (manual, após compra do número).
 
 ## Gemini Live — referência operacional
 
@@ -279,22 +287,34 @@ Tabela única `calls`. Schema em `supabase/migrations/001_calls.sql`. RLS enable
 ### Warm transfer (`transfer_to_human`)
 
 - **Tool:** `transfer_to_human(reason)` em `agent.py`, definida como closure dentro de `entrypoint` (precisa de `ctx`).
-- **Como funciona:** deteta o participante SIP da room (`_find_sip_participant`) e chama `ctx.transfer_sip_participant(participant, TRANSFER_TO_NUMBER, play_dialtone=True)`.
+- **Modo attended (com `OUTBOUND_TRUNK_ID` definido) — recomendado:**
+  - A Ana fica na chamada e disca para `TRANSFER_TO_NUMBER` via `lkapi.sip.create_sip_participant(..., wait_until_answered=True, ringing_timeout=TRANSFER_RING_TIMEOUT_S)`.
+  - **Se o Raphael atender:** entra na mesma room que o chamador (ambos os SIP legs ouvem-se directamente via mix da room). A Ana diz uma frase breve de despedida e sai (`ctx.shutdown()`, com 4s de atraso para não cortar a fala).
+  - **Se não atender (voicemail / timeout / ocupado):** `create_sip_participant` lança `TwirpError` — a Ana **nunca chega a tocar no leg do chamador**, cai directo no fallback WhatsApp.
+  - **Caller ID:** `display_name=TRANSFER_CALLER_ID_NAME` (default "Ana - Voice Demo") no SIP `From`. Passthrough do nome depende do CNAM da DIDWW (ver secção SIP Trunk abaixo).
+- **Modo blind (sem `OUTBOUND_TRUNK_ID`):** fallback para `ctx.transfer_sip_participant(participant, TRANSFER_TO_NUMBER, play_dialtone=True)` (SIP REFER directo, sem deteção de voicemail/no-answer).
 - **Sessões de browser (sem SIP):** a tool devolve mensagem indicando que não é chamada telefónica; a Ana continua a conversa sem mencionar a tentativa.
-- **Fallback:** se o transfer falhar (ex: trunk DIDWW sem REFER habilitado), faz POST para `TRANSFER_FALLBACK_ENDPOINT` (`/api/transfer-fallback`) que envia WhatsApp com o número do chamador e o motivo, para callback manual.
-- **Pendente de validação real:** se a DIDWW suporta REFER por defeito (só testável depois da compra do número +351), e se `transfer_to` precisa do prefixo `tel:` em vez de E.164 simples — ajustar `TRANSFER_TO_NUMBER` se necessário após o primeiro teste com chamada real.
+- **Fallback WhatsApp:** em qualquer caso de falha (voicemail, erro técnico, REFER falhou), POST para `TRANSFER_FALLBACK_ENDPOINT` (`/api/transfer-fallback`) com `callerPhone` + `reason`.
+- **Pendente de validação real:** todo o fluxo (attended + blind) só é testável com chamada SIP real, após a compra do número +351 (ver "Pendentes" abaixo).
+
+### Concorrência (`WorkerOptions`)
+
+- `num_idle_processes=2` — mantém 2 processos Python "quentes" (modelo Gemini Live já carregado) prontos a aceitar jobs, evitando latência de arranque em chamadas concorrentes.
+- `load_threshold=0.75` — acima de 75% de carga média, o worker para de aceitar novos jobs (LiveKit redistribui para outro worker, se existir).
+- Estado já era seguro para concorrência (sem globals partilhados — tudo dentro de `entrypoint`/closures por job); isto só afina alocação de recursos. Em Railway, cada processo idle consome memória com o modelo carregado — ajustar `num_idle_processes` conforme RAM disponível no plano.
 
 ### SIP Trunk setup (DIDWW +351)
 
 **Status:** Pré-instalação feita (Junho 2026), aguarda número +351.
 
-- **Script:** `livekit-agent/setup_sip.py` — configura LiveKit inbound SIP trunk + dispatch rule
+- **Script:** `livekit-agent/setup_sip.py` — configura LiveKit inbound SIP trunk + dispatch rule + (opcional) outbound trunk para warm transfer
 - **Quando executar:** após compra do número +351 na DIDWW (currently pending)
 - **Variáveis necessárias:**
   ```bash
   PHONE_NUMBER=+351XXXXXXXXX    # Número DIDWW a comprar
   SIP_USER=<didww-sip-username> # Credenciais DIDWW
   SIP_PASS=<didww-sip-password>
+  DIDWW_OUTBOUND_ADDRESS=<didww-outbound-sip-host>  # opcional — activa outbound trunk (warm transfer)
   LIVEKIT_URL=wss://voice-agent-hfi9y0b7.livekit.cloud
   LIVEKIT_API_KEY=...
   LIVEKIT_API_SECRET=...
@@ -302,11 +322,13 @@ Tabela única `calls`. Schema em `supabase/migrations/001_calls.sql`. RLS enable
 - **Resultado:** 
   - Cria `SIPInboundTrunk` (DIDWW +351) com allowlist de IPs DIDWW
   - Cria `SIPDispatchRule` que roteia chamadas para `ana-agent` em rooms com prefix `call-`
+  - Se `DIDWW_OUTBOUND_ADDRESS` definido, cria `SIPOutboundTrunk` — o `sip_trunk_id` resultante vai para `OUTBOUND_TRUNK_ID` no deploy do agent (activa attended transfer)
 - **DIDWW SIP destination** (configurar em DIDWW dashboard): `voice-agent-hfi9y0b7.sip.livekit.cloud:5060`
 - **Permitida lista IPs DIDWW:** `46.19.209.14/32`, `46.19.210.14/32`, `46.19.212.14/32`, `46.19.213.14/32`, `46.19.214.14/32`, `46.19.215.14/32`, `185.238.173.14/32`
+- **Branded caller ID (CNAM):** registar nome (ex: "Ana - Raphael Bruno") para o número +351 em DIDWW dashboard → Numbers → CNAM/Caller ID. Sem registo, `TRANSFER_CALLER_ID_NAME` pode não aparecer no telefone do Raphael (depende de passthrough da operadora).
 
 ## Provedores a acompanhar
 
 **Thinking Machines Lab — "Interaction Models"** (anunciado 11/05/2026). Full-duplex nativo, 0.4s latência, multimodal por design. Hoje em research preview limitado. Candidato natural para substituir Hume quando abrir GA.
 
-**DIDWW +351 30x (telefone)** — ✅ Pré-instalação SIP trunk feita em Junho 2026. ⏳ Aguarda compra do número. Uma vez comprado: executar `setup_sip.py` + configurar SIP destination em DIDWW → Gemini Live agent atende chamadas telefónicas pt-PT reais via LiveKit SIP inbound trunk.
+**DIDWW +351 30x (telefone)** — ✅ Pré-instalação SIP trunk feita em Junho 2026 (inbound + outbound + warm transfer com deteção de voicemail, todos prontos em código). ⏳ Aguarda compra do número. Uma vez comprado: executar `setup_sip.py` + configurar SIP destination em DIDWW → Gemini Live agent atende chamadas telefónicas pt-PT reais via LiveKit SIP inbound trunk, com transferência para humano quando necessário.
