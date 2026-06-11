@@ -1,0 +1,98 @@
+{
+  "region": {
+    "name": "Peniche",
+    "country": "PT",
+    "lat": 39.3568749,
+    "lng": -9.3786838,
+    "radius_km": 20,
+    "zoom": 11
+  },
+  "qualification": {
+    "min_score": 40,
+    "require_phone": true,
+    "require_web_or_instagram": true
+  },
+  "niches": {
+    "peniche_restaurantes": {
+      "key": "restaurantes",
+      "label": "Restaurantes",
+      "gmaps_query": "restaurante",
+      "keywords_enrichment": ["take away", "takeaway", "delivery", "reservas", "menu"],
+      "ticket_estimated_eur": 450,
+      "pain_one_liner_pt": "Perdem reservas fora de horário e gastam tempo a responder o mesmo no WhatsApp.",
+      "pain_one_liner_en": "You lose bookings after hours and waste time repeating the same answers on WhatsApp."
+    },
+    "peniche_cafes": {
+      "key": "cafes",
+      "label": "Cafés",
+      "gmaps_query": "café",
+      "keywords_enrichment": ["pastelaria", "brunch", "coffee"],
+      "ticket_estimated_eur": 350,
+      "pain_one_liner_pt": "Pedidos e reservas misturados com mil WhatsApps fora de horas.",
+      "pain_one_liner_en": "Orders and bookings drown in after-hours WhatsApp chaos."
+    },
+    "peniche_surf": {
+      "key": "surf",
+      "label": "Surf Schools",
+      "gmaps_query": "surf school",
+      "keywords_enrichment": ["surf lessons", "board rental", "supertubos", "beginner", "advanced"],
+      "ticket_estimated_eur": 700,
+      "pain_one_liner_pt": "Turistas escrevem em 5 idiomas, reservas somem entre DMs do Insta e WhatsApp.",
+      "pain_one_liner_en": "Tourists message in 5 languages — bookings get lost between Instagram DMs and WhatsApp."
+    },
+    "peniche_hoteis": {
+      "key": "hoteis",
+      "label": "Hotéis & Alojamentos",
+      "gmaps_query": "hotel",
+      "keywords_enrichment": ["check-in", "reservas diretas", "booking", "airbnb"],
+      "ticket_estimated_eur": 900,
+      "pain_one_liner_pt": "Hóspedes perguntam o mesmo 40x por dia (wi-fi, check-out, pequeno-almoço).",
+      "pain_one_liner_en": "Guests ask the same 40 questions daily (wifi, checkout, breakfast)."
+    },
+    "peniche_clinicas": {
+      "key": "clinicas",
+      "label": "Clínicas",
+      "gmaps_query": "clínica",
+      "keywords_enrichment": ["marcação", "consulta", "dentista", "estética", "fisioterapia"],
+      "ticket_estimated_eur": 800,
+      "pain_one_liner_pt": "No-show de 15-20% e rececionista gasta 2h/dia só a confirmar consultas.",
+      "pain_one_liner_en": "15-20% no-show rate and reception burns 2h/day just confirming appointments."
+    },
+    "peniche_saloes": {
+      "key": "saloes",
+      "label": "Salões & Barbearias",
+      "gmaps_query": "cabeleireiro",
+      "keywords_enrichment": ["marcação", "manicure", "estética", "spa"],
+      "ticket_estimated_eur": 400,
+      "pain_one_liner_pt": "Agenda preenchida via WhatsApp manualmente e esquecem-se de confirmar.",
+      "pain_one_liner_en": "Bookings handled manually on WhatsApp — confirmations get forgotten."
+    },
+    "peniche_imobiliarias": {
+      "key": "imobiliarias",
+      "label": "Imobiliárias",
+      "gmaps_query": "imobiliária",
+      "keywords_enrichment": ["arrendamento", "venda", "apartamento", "moradia", "investimento"],
+      "ticket_estimated_eur": 1200,
+      "pain_one_liner_pt": "Leads chegam por 3 canais e 60% nunca são qualificados a tempo.",
+      "pain_one_liner_en": "Leads arrive across 3 channels and 60% never get qualified in time."
+    },
+    "peniche_advocacia": {
+      "key": "advocacia",
+      "label": "Escritórios de Advocacia",
+      "gmaps_query": "advogado",
+      "keywords_enrichment": ["consulta", "processo", "direito", "jurídico", "notário"],
+      "ticket_estimated_eur": 600,
+      "pain_one_liner_pt": "Pedidos de consulta perdem-se entre WhatsApp, email e site — e ninguém tria.",
+      "pain_one_liner_en": "Consultation requests get lost across WhatsApp, email and website — nobody triages."
+    },
+    "peniche_guest_house": {
+      "key": "guest_house",
+      "label": "Guest Houses & Alojamento Local",
+      "gmaps_query": "guest house",
+      "keywords_enrichment": ["check-in", "reserva", "alojamento local", "surf", "hostel"],
+      "ticket_estimated_eur": 500,
+      "pain_one_liner_pt": "Hóspedes perguntam check-in, parking e FAQ a qualquer hora — o anfitrião não descansa.",
+      "pain_one_liner_en": "Guests ask check-in, parking and FAQ at all hours — the host never rests."
+    }
+  }
+}

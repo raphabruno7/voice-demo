@@ -82,6 +82,9 @@ lib/
   google-calendar.ts                    # Google Calendar service-account (createEvent)
 livekit-agent/                          # Python agent — Gemini Live end-to-end
   agent.py                              # AgentSession + google.beta.realtime.RealtimeModel
+  arcus_lookup.py                       # ✅ Lookup/registo de leads no Arcus CRM (contexto dinâmico por chamada)
+  niches.json                           # Cópia versionada de easy-leads-ai/niches.json (sync manual)
+  test_arcus_lookup.py                  # Script manual: testar lookup_by_phone/by_name contra Arcus real
   system-prompt.txt                     # Prompt Ana pt-PT (partilhado com Hume)
   requirements.txt                      # livekit-agents[google]>=0.12
   Dockerfile                            # Para Railway/deploy em produção
@@ -134,6 +137,9 @@ supabase/migrations/
 | `TRANSFER_TO_NUMBER` | Python agent — destino do warm transfer SIP. Default `+351931822816` |
 | `TRANSFER_FALLBACK_ENDPOINT` | Python agent — URL de `/api/transfer-fallback` (opcional; sem ela, falha de transfer só fica em log) |
 | `WEBHOOK_SECRET` | Reutilizada por `/api/transfer-fallback` (header `x-vapi-secret`), além de `book_meeting` |
+| `ARCUS_SUPABASE_URL` | Python agent (`arcus_lookup.py`) — Supabase REST do Arcus CRM |
+| `ARCUS_SUPABASE_KEY` | Python agent (`arcus_lookup.py`) — service role/anon key do Arcus |
+| `ARCUS_ORG_ID` | Python agent (`arcus_lookup.py`) — default `c4669ad5-e6b2-41ed-9c51-c09dfbec17f9` |
 
 ### Standby (outros provedores)
 | Variable | Where |
@@ -173,6 +179,8 @@ PYTHONUNBUFFERED=1 \
   CALENDAR_ENDPOINT=https://voice-demo-navy.vercel.app/api/book-meeting \
   WEBHOOK_SECRET=... \
   TRANSFER_FALLBACK_ENDPOINT=https://voice-demo-navy.vercel.app/api/transfer-fallback \
+  ARCUS_SUPABASE_URL=... \
+  ARCUS_SUPABASE_KEY=... \
   ./venv/bin/python -u agent.py dev
 ```
 
@@ -304,6 +312,34 @@ Tabela única `calls`. Schema em `supabase/migrations/001_calls.sql`. RLS enable
   - Cria `SIPDispatchRule` que roteia chamadas para `ana-agent` em rooms com prefix `call-`
 - **DIDWW SIP destination** (configurar em DIDWW dashboard): `voice-agent-hfi9y0b7.sip.livekit.cloud:5060`
 - **Permitida lista IPs DIDWW:** `46.19.209.14/32`, `46.19.210.14/32`, `46.19.212.14/32`, `46.19.213.14/32`, `46.19.214.14/32`, `46.19.215.14/32`, `185.238.173.14/32`
+
+## Contexto dinâmico do lead (Arcus CRM) — Junho 2026
+
+A Ana identifica quem está a ligar e personaliza a conversa por chamada (não há um agente/número por lead — é sempre o mesmo `ana-agent`, com contexto injectado dinamicamente).
+
+- **`arcus_lookup.py`** — todas as chamadas ao Arcus CRM (Supabase REST, tabela `contacts`/`activities`, `org_id` partilhado com `prospeccao-ativa`):
+  - `lookup_by_phone(phone)` / `lookup_by_company_name(name)` — resolução do lead.
+  - `build_lead_context(contact)` → `{contact_id, name, niche_label, pain}` (sem `notes` cru — regra de privacidade).
+  - `render_lead_context_block(lead_context)` → bloco `=== CONTEXTO DO LEAD ===` injectado no `SYSTEM_PROMPT`.
+  - `UNIDENTIFIED_LEAD_INSTRUCTIONS` — instruções para a Ana perguntar o nome do negócio quando não há match.
+  - `update_contact_after_voice_call` / `log_voice_interaction` — regista o outcome da chamada em `activities` + tags no contact.
+  - `pain_for_tags` lê `niches.json` (cópia local) para mapear tag `peniche_*` → `pain_one_liner_pt`.
+
+- **`agent.py`**:
+  - `_resolve_lead_context(ctx)` — corre logo após `ctx.connect()`. Em chamada SIP, usa `sip.phoneNumber` do participante; em modo browser, lê `room.metadata` (`{"leadPhone": "+351..."}`).
+  - `instructions` final = `SYSTEM_PROMPT` + bloco de contexto do lead (ou `UNIDENTIFIED_LEAD_INSTRUCTIONS`).
+  - Tool **`lookup_lead_by_name(business_name)`** — fallback quando o lead não foi identificado pelo telefone; se encontrar, chama `agent.update_instructions(...)` para re-injectar o contexto a meio da chamada.
+  - Tool **`wrap_up_call(intent, summary)`** — chamada pela Ana perto do fecho; regista outcome no Arcus via `log_voice_interaction` + `update_contact_after_voice_call`.
+  - Todas as chamadas Arcus em `try/except` — falha = modo genérico, nunca bloqueia a chamada.
+
+- **Teste em modo browser (sem SIP/número)**:
+  - `route.ts` (`/api/livekit/token`) aceita `leadPhone` opcional no body e grava em `room.metadata`.
+  - `GeminiLiveWidget.tsx` lê `?leadPhone=+351...` da query string da página e envia no POST.
+  - Procedimento: `agent.py dev` local com `ARCUS_SUPABASE_URL`/`ARCUS_SUPABASE_KEY` no ambiente → abrir `/livekit?leadPhone=+351912345678` (telefone de um contact real no Arcus) → falar com a Ana e confirmar que menciona o nome do negócio e adapta a conversa à dor do nicho.
+
+- **⚠️ Bloqueado (Junho 2026)**: `cwvgwknriswkanjxrvmz.supabase.co` (URL do Arcus em `~/.easy-leads/arcus.env`) está a devolver **NXDOMAIN** (confirmado via `dig` contra `1.1.1.1`/`8.8.8.8`, não é restrição de sandbox). Possível projecto Supabase pausado/eliminado. Enquanto isto não for resolvido, `arcus_lookup.py` falha silenciosamente (modo genérico) — testar com dados reais fica bloqueado até o Arcus voltar a resolver.
+
+- **Pitches**: secção `# Oferta de Demo de Voz` adicionada aos 5 nichos activos em `~/.openclaw/workspace-prospector/pitches/` e `prospeccao-ativa/agent/pitches/`, usando `{DEMO_PHONE_NUMBER}` (var pendente — ver `prospeccao-ativa/agent/SOUL.md`). `dispatch_whatsapp.py` **não** participa nesta selecção — quem decide entre `# Oferta de demo` e `# Oferta de Demo de Voz` é o agente prospector (OpenClaw) durante a conversa inbound, conforme `SOUL.md`.
 
 ## Provedores a acompanhar
 

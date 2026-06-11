@@ -47,10 +47,11 @@ export default function GeminiLiveWidget() {
   async function handleConnect() {
     setConnecting(true);
     try {
+      const leadPhone = new URLSearchParams(window.location.search).get("leadPhone") ?? undefined;
       const res = await fetch("/api/livekit/token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ participantName: "tester" }),
+        body: JSON.stringify({ participantName: "tester", leadPhone }),
       });
       if (!res.ok) throw new Error("Token error");
       const { token, url } = await res.json();

@@ -11,8 +11,15 @@ export async function POST(req: NextRequest) {
   const apiKey = process.env.LIVEKIT_API_KEY!;
   const apiSecret = process.env.LIVEKIT_API_SECRET!;
 
+  const leadPhone = body.leadPhone as string | undefined;
+
   const roomSvc = new RoomServiceClient(httpUrl, apiKey, apiSecret);
-  await roomSvc.createRoom({ name: roomName, emptyTimeout: 300, maxParticipants: 2 });
+  await roomSvc.createRoom({
+    name: roomName,
+    emptyTimeout: 300,
+    maxParticipants: 2,
+    metadata: leadPhone ? JSON.stringify({ leadPhone }) : undefined,
+  });
 
   const dispatchSvc = new AgentDispatchClient(httpUrl, apiKey, apiSecret);
   await dispatchSvc.createDispatch(roomName, "ana-agent");

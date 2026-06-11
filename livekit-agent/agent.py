@@ -1,3 +1,4 @@
+import json
 import os
 import asyncio
 import logging
@@ -7,6 +8,16 @@ from livekit.agents import Agent, AgentSession, JobContext, WorkerOptions, cli, 
 from livekit.plugins import google
 from google.genai import types as genai_types
 import httpx
+
+from arcus_lookup import (
+    UNIDENTIFIED_LEAD_INSTRUCTIONS,
+    build_lead_context,
+    lookup_by_company_name,
+    lookup_by_phone,
+    log_voice_interaction,
+    render_lead_context_block,
+    update_contact_after_voice_call,
+)
 
 logger = logging.getLogger("ana-agent")
 
@@ -49,8 +60,114 @@ async def book_meeting(caller_name: str, start_time: str) -> str:
     return "I couldn't complete the booking. Please contact Raphael at raphaelbruno.dev@gmail.com."
 
 
+async def _resolve_lead_context(ctx: JobContext) -> dict | None:
+    """Identifica o lead desta chamada via SIP caller ID ou room metadata (modo browser)."""
+    sip_participant = _find_sip_participant(ctx.room)
+
+    if sip_participant is not None:
+        phone = sip_participant.attributes.get("sip.phoneNumber", "")
+        if not phone:
+            return None
+        try:
+            contact = await lookup_by_phone(phone)
+        except Exception:
+            logger.exception("arcus lookup_by_phone failed")
+            return None
+        return build_lead_context(contact) if contact else None
+
+    # Modo browser/teste: leadPhone passado via room.metadata
+    if not ctx.room.metadata:
+        return None
+    try:
+        meta = json.loads(ctx.room.metadata)
+    except ValueError:
+        return None
+    phone = meta.get("leadPhone")
+    if not phone:
+        return None
+    try:
+        contact = await lookup_by_phone(phone)
+    except Exception:
+        logger.exception("arcus lookup_by_phone failed")
+        return None
+    return build_lead_context(contact) if contact else None
+
+
 async def entrypoint(ctx: JobContext):
     await ctx.connect()
+
+    state: dict = {"lead_context": await _resolve_lead_context(ctx), "agent": None}
+
+    instructions = SYSTEM_PROMPT + "\n\n" + (
+        render_lead_context_block(state["lead_context"])
+        if state["lead_context"]
+        else UNIDENTIFIED_LEAD_INSTRUCTIONS
+    )
+
+    @function_tool
+    async def lookup_lead_by_name(business_name: str) -> str:
+        """Procura o negócio do utilizador no CRM pelo nome, para personalizar a conversa.
+
+        Usa esta tool assim que o utilizador disser o nome do negócio dele,
+        apenas se ainda não tiveres contexto sobre o negócio.
+
+        Args:
+            business_name: Nome do negócio mencionado pelo utilizador.
+        """
+        try:
+            contact = await lookup_by_company_name(business_name)
+        except Exception:
+            logger.exception("arcus lookup_by_company_name failed")
+            return "Não consegui encontrar informação adicional. Continua a conversa normalmente."
+
+        if not contact:
+            return "Não encontrei esse negócio no sistema. Continua a conversa normalmente, sem mencionar a pesquisa."
+
+        lead_context = build_lead_context(contact)
+        state["lead_context"] = lead_context
+        new_instructions = SYSTEM_PROMPT + "\n\n" + render_lead_context_block(lead_context)
+        if state["agent"] is not None:
+            await state["agent"].update_instructions(new_instructions)
+
+        return (
+            f"Encontrei: {lead_context['name']}"
+            + (f" ({lead_context['niche_label']})" if lead_context.get("niche_label") else "")
+            + f". A partir de agora, personaliza a conversa para a dor: {lead_context.get('pain', '')}. "
+            "Continua a conversa de forma natural, sem dizer 'encontrei no sistema'."
+        )
+
+    @function_tool
+    async def wrap_up_call(intent: str, summary: str) -> str:
+        """Regista o resultado da chamada no CRM. Chama esta tool perto do fim da conversa,
+        mesmo antes de te despedires, sempre que houver um lead identificado
+        (por telefone ou por nome).
+
+        Args:
+            intent: Resultado resumido: "agendou_reuniao", "interessado_sem_agendar",
+                    "nao_interessado", "pediu_transferencia", "info_apenas".
+            summary: Resumo de 1-2 frases da conversa, em português, para o Raphael ler depois.
+        """
+        lead_context = state.get("lead_context")
+        if not lead_context:
+            return "Sem lead identificado — nada a registar."
+
+        contact_id = lead_context["contact_id"]
+        try:
+            await log_voice_interaction(
+                contact_id,
+                title=f"Demo de voz — {intent}",
+                description=summary,
+                outcome_type="voice_demo",
+            )
+            await update_contact_after_voice_call(
+                contact_id,
+                extra_tags=["voice_demo_done", f"voice_demo_{intent}"],
+            )
+        except Exception:
+            logger.exception("wrap_up_call failed")
+            return "Falhou o registo no CRM, mas continua normalmente."
+
+        return "Registado."
 
     @function_tool
     async def transfer_to_human(reason: str) -> str:
@@ -111,7 +228,7 @@ async def entrypoint(ctx: JobContext):
         voice="Aoede",
         language="pt-PT",
         api_key=os.environ["GEMINI_API_KEY"],
-        instructions=SYSTEM_PROMPT,
+        instructions=instructions,
         temperature=0.3,
         realtime_input_config=genai_types.RealtimeInputConfig(
             automatic_activity_detection=genai_types.AutomaticActivityDetection(
@@ -123,15 +240,27 @@ async def entrypoint(ctx: JobContext):
     )
 
     agent = Agent(
-        instructions=SYSTEM_PROMPT,
-        tools=[book_meeting, transfer_to_human],
+        instructions=instructions,
+        tools=[book_meeting, transfer_to_human, lookup_lead_by_name, wrap_up_call],
     )
+    state["agent"] = agent
     session = AgentSession(llm=model)
     await session.start(agent, room=ctx.room)
 
-    await session.generate_reply(
-        instructions="Greet the caller warmly in European Portuguese: 'Olá! Sou a Ana, uma demonstração ao vivo de um agente de IA criado por Raphael Bruno. Como posso ajudar?' Then wait for their response."
-    )
+    lead_context = state["lead_context"]
+    if lead_context:
+        greeting_instructions = (
+            "Greet the caller warmly in European Portuguese, mentioning their business by name: "
+            f"'Olá! Daqui é a Ana, do Raphael Bruno. Falas da {lead_context['name']}, certo?' "
+            "Then wait for their response."
+        )
+    else:
+        greeting_instructions = (
+            "Greet the caller warmly in European Portuguese: 'Olá! Sou a Ana, uma demonstração ao vivo de um agente "
+            "de IA criado por Raphael Bruno. Como posso ajudar?' Then wait for their response."
+        )
+
+    await session.generate_reply(instructions=greeting_instructions)
 
 
 if __name__ == "__main__":
