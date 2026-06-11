@@ -1,7 +1,10 @@
 import os
+import json
 import asyncio
 import logging
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 from livekit import rtc, api
 from livekit.api import TwirpError
 from livekit.agents import Agent, AgentSession, JobContext, WorkerOptions, cli, function_tool
@@ -13,10 +16,34 @@ import httpx
 logger = logging.getLogger("ana-agent")
 
 SYSTEM_PROMPT = Path(__file__).parent.joinpath("system-prompt.txt").read_text()
+CONFIRMATION_PROMPT_TEMPLATE = Path(__file__).parent.joinpath("system-prompt-confirmation.txt").read_text()
 CALENDAR_URL = os.environ["CALENDAR_ENDPOINT"]
 CALENDAR_SECRET = os.environ["WEBHOOK_SECRET"]
 TRANSFER_TO_NUMBER = os.environ.get("TRANSFER_TO_NUMBER", "+351931822816")
 TRANSFER_FALLBACK_URL = os.environ.get("TRANSFER_FALLBACK_ENDPOINT")
+
+# Outbound confirmation/reschedule/cancel calls reuse the same Next.js host as
+# CALENDAR_ENDPOINT (e.g. https://voice-demo-navy.vercel.app/api/book-meeting).
+_APP_BASE_URL = CALENDAR_URL.rsplit("/api/", 1)[0]
+APPOINTMENTS_CONFIRM_URL = f"{_APP_BASE_URL}/api/appointments/confirm"
+APPOINTMENTS_RESCHEDULE_URL = f"{_APP_BASE_URL}/api/appointments/reschedule"
+APPOINTMENTS_CANCEL_URL = f"{_APP_BASE_URL}/api/appointments/cancel"
+APPOINTMENTS_OPT_OUT_URL = f"{_APP_BASE_URL}/api/appointments/opt-out"
+
+_PT_WEEKDAYS = ["segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado", "domingo"]
+_PT_MONTHS = [
+    "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+    "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+]
+
+
+def _format_pt_datetime(iso: str) -> str:
+    """Formats an ISO datetime as a pt-PT phrase, e.g. 'terça-feira, 16 de junho, às 15:00'."""
+    if not iso:
+        return ""
+    dt = datetime.fromisoformat(iso)
+    dt = dt.astimezone(ZoneInfo("Europe/Lisbon")) if dt.tzinfo else dt.replace(tzinfo=ZoneInfo("Europe/Lisbon"))
+    return f"{_PT_WEEKDAYS[dt.weekday()]}, {dt.day} de {_PT_MONTHS[dt.month - 1]}, às {dt.strftime('%H:%M')}"
 
 # Outbound trunk for attended ("warm") transfer — set once the +351 number
 # and outbound SIP trunk exist (see setup_sip.py). Without it, transfer_to_human
@@ -80,6 +107,80 @@ async def book_meeting(caller_name: str, start_time: str) -> str:
 
 async def entrypoint(ctx: JobContext):
     await ctx.connect()
+
+    job_metadata: dict = {}
+    if ctx.job.metadata:
+        try:
+            job_metadata = json.loads(ctx.job.metadata)
+        except (json.JSONDecodeError, TypeError):
+            logger.warning("entrypoint: failed to parse job metadata: %r", ctx.job.metadata)
+
+    is_confirmation_call = job_metadata.get("callType") == "confirmation"
+
+    @function_tool
+    async def confirm_appointment() -> str:
+        """Confirma a marcação do cliente. Usa quando o cliente disser que vai comparecer."""
+        async with httpx.AsyncClient() as client:
+            r = await client.post(
+                APPOINTMENTS_CONFIRM_URL,
+                json={"appointmentId": job_metadata.get("appointmentId")},
+                headers={"x-vapi-secret": CALENDAR_SECRET},
+                timeout=10,
+            )
+            data = r.json()
+        if data.get("success"):
+            return "Marcação confirmada com sucesso."
+        return "Não foi possível confirmar no sistema, mas regista o pedido do cliente."
+
+    @function_tool
+    async def reschedule_appointment(new_start_time: str) -> str:
+        """Remarca a marcação do cliente para uma nova data/hora.
+
+        Args:
+            new_start_time: Nova data/hora ISO 8601 (ex: 2026-06-17T15:00:00).
+        """
+        async with httpx.AsyncClient() as client:
+            r = await client.post(
+                APPOINTMENTS_RESCHEDULE_URL,
+                json={"appointmentId": job_metadata.get("appointmentId"), "newStartTime": new_start_time},
+                headers={"x-vapi-secret": CALENDAR_SECRET},
+                timeout=10,
+            )
+            data = r.json()
+        if data.get("success"):
+            return f"Marcação remarcada para {data['meetingTime']}."
+        return "Não foi possível remarcar agora. Pede ao cliente para contactar directamente."
+
+    @function_tool
+    async def cancel_appointment(reason: str = "") -> str:
+        """Cancela a marcação do cliente.
+
+        Args:
+            reason: Motivo curto do cancelamento, em português (opcional).
+        """
+        async with httpx.AsyncClient() as client:
+            r = await client.post(
+                APPOINTMENTS_CANCEL_URL,
+                json={"appointmentId": job_metadata.get("appointmentId"), "reason": reason},
+                headers={"x-vapi-secret": CALENDAR_SECRET},
+                timeout=10,
+            )
+            data = r.json()
+        if data.get("success"):
+            return "Marcação cancelada com sucesso."
+        return "Não foi possível cancelar agora. Pede ao cliente para contactar directamente."
+
+    @function_tool
+    async def opt_out() -> str:
+        """Regista que o cliente não quer receber mais chamadas automáticas de confirmação."""
+        async with httpx.AsyncClient() as client:
+            await client.post(
+                APPOINTMENTS_OPT_OUT_URL,
+                json={"appointmentId": job_metadata.get("appointmentId")},
+                headers={"x-vapi-secret": CALENDAR_SECRET},
+                timeout=10,
+            )
+        return "Pedido registado — não vai receber mais chamadas automáticas."
 
     @function_tool
     async def transfer_to_human(reason: str) -> str:
@@ -160,12 +261,35 @@ async def entrypoint(ctx: JobContext):
             logger.exception("transfer_to_human: blind transfer failed")
             return await _transfer_failed(caller_phone, f"{reason} (falha técnica)")
 
+    if is_confirmation_call:
+        appointment_time_pt = _format_pt_datetime(job_metadata.get("appointmentAt", ""))
+        instructions = (
+            CONFIRMATION_PROMPT_TEMPLATE
+            .replace("{client_name}", job_metadata.get("clientName") or "")
+            .replace("{appointment_time}", appointment_time_pt)
+            .replace("{business_type}", job_metadata.get("businessType") or "marcação")
+        )
+        agent_tools = [confirm_appointment, reschedule_appointment, cancel_appointment, opt_out]
+        greeting_instructions = (
+            "Diz exactamente: 'Boa tarde, fala a Ana, assistente virtual. É só uma chamada "
+            f"automática para confirmar a sua marcação de {appointment_time_pt}. "
+            "Vai poder comparecer?' Depois espera pela resposta."
+        )
+    else:
+        instructions = SYSTEM_PROMPT
+        agent_tools = [book_meeting, transfer_to_human]
+        greeting_instructions = (
+            "Greet the caller warmly in European Portuguese: 'Olá! Sou a Ana, uma demonstração "
+            "ao vivo de um agente de IA criado por Raphael Bruno. Como posso ajudar?' "
+            "Then wait for their response."
+        )
+
     model = google.beta.realtime.RealtimeModel(
         model="gemini-2.5-flash-native-audio-latest",
         voice="Aoede",
         language="pt-PT",
         api_key=os.environ["GEMINI_API_KEY"],
-        instructions=SYSTEM_PROMPT,
+        instructions=instructions,
         temperature=0.3,
         realtime_input_config=genai_types.RealtimeInputConfig(
             automatic_activity_detection=genai_types.AutomaticActivityDetection(
@@ -177,15 +301,13 @@ async def entrypoint(ctx: JobContext):
     )
 
     agent = Agent(
-        instructions=SYSTEM_PROMPT,
-        tools=[book_meeting, transfer_to_human],
+        instructions=instructions,
+        tools=agent_tools,
     )
     session = AgentSession(llm=model)
     await session.start(agent, room=ctx.room)
 
-    await session.generate_reply(
-        instructions="Greet the caller warmly in European Portuguese: 'Olá! Sou a Ana, uma demonstração ao vivo de um agente de IA criado por Raphael Bruno. Como posso ajudar?' Then wait for their response."
-    )
+    await session.generate_reply(instructions=greeting_instructions)
 
 
 if __name__ == "__main__":
