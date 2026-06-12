@@ -35,9 +35,9 @@ function WidgetInner() {
 
   const isSpeaking = conversation.isSpeaking;
   const label =
-    state === "idle" ? "Talk to Ana — free, right now" :
-    state === "connecting" ? "Connecting…" :
-    state === "active" ? "End call" : "Ending…";
+    state === "idle" ? "Falar com a Ana — grátis, agora" :
+    state === "connecting" ? "A ligar…" :
+    state === "active" ? "Terminar chamada" : "A terminar…";
 
   const isActive = state === "active";
   const isLoading = state === "connecting" || state === "ending";
@@ -52,7 +52,7 @@ function WidgetInner() {
           "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-950",
           isActive
             ? "bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30 focus:ring-red-500"
-            : "bg-emerald-500 text-zinc-950 hover:bg-emerald-400 focus:ring-emerald-500",
+            : "bg-amber-500 text-zinc-950 hover:bg-amber-400 focus:ring-amber-500",
           isLoading ? "opacity-60 cursor-not-allowed" : "",
         ].join(" ")}
       >
@@ -71,13 +71,13 @@ function WidgetInner() {
         </span>
       </button>
       {isActive && (
-        <p className="text-xs text-zinc-500 animate-pulse">Ana is listening…</p>
+        <p className="text-xs text-zinc-500 animate-pulse">A Ana está a ouvir…</p>
       )}
     </div>
   );
 }
 
-export default function LiveKitWidget() {
+export default function ElevenLabsWidget() {
   return (
     <ConversationProvider>
       <WidgetInner />

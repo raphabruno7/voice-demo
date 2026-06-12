@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const agents = [
   { label: "Hume EVI", href: "/" },
   { label: "Gemini Live", href: "/livekit" },
+  { label: "ElevenLabs", href: "/elevenlabs" },
 ];
 
 export default function AgentNav() {
