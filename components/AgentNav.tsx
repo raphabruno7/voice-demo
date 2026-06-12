@@ -2,15 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { Lang } from "@/lib/i18n/lang";
+import type { Dict } from "@/lib/i18n/dictionaries";
+import LanguageToggle from "@/components/LanguageToggle";
 
-const agents = [
-  { label: "Hume EVI", href: "/" },
-  { label: "Gemini Live", href: "/livekit" },
-  { label: "ElevenLabs", href: "/elevenlabs" },
-];
-
-export default function AgentNav() {
+export default function AgentNav({ lang, dict }: { lang: Lang; dict: Dict["nav"] }) {
   const pathname = usePathname();
+
+  const agents = [
+    { label: dict.portfolio, href: "/" },
+    { label: dict.hume, href: "/hume" },
+    { label: dict.livekit, href: "/livekit" },
+    { label: dict.elevenlabs, href: "/elevenlabs" },
+  ];
 
   return (
     <nav className="fixed top-4 right-4 z-50 flex items-center gap-1 text-sm">
@@ -31,6 +35,8 @@ export default function AgentNav() {
           </Link>
         );
       })}
+      <span className="text-zinc-700">·</span>
+      <LanguageToggle lang={lang} label={dict.langToggleLabel} />
     </nav>
   );
 }

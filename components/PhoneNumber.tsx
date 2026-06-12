@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 
 interface PhoneNumberProps {
   number: string;
+  dict: { copy: string; copied: string };
 }
 
-export default function PhoneNumber({ number }: PhoneNumberProps) {
+export default function PhoneNumber({ number, dict }: PhoneNumberProps) {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -29,7 +30,7 @@ export default function PhoneNumber({ number }: PhoneNumberProps) {
         variant="outline"
         className="border-white/20 bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white"
       >
-        {copied ? "Copied!" : "Copy number"}
+        {copied ? dict.copied : dict.copy}
       </Button>
     </div>
   );

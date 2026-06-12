@@ -8,6 +8,12 @@ import {
   type JSONMessage,
   type UserTranscriptMessage,
 } from "@humeai/voice-react";
+import type { Dict } from "@/lib/i18n/dictionaries";
+
+type HumeDict = {
+  common: Dict["widgets"]["common"];
+  hume: Dict["widgets"]["hume"];
+};
 
 type CallState = "idle" | "permission" | "connecting" | "active" | "ending" | "error";
 
@@ -57,9 +63,11 @@ async function fetchToken(): Promise<string | null> {
   }
 }
 
-async function ensureMicPermission(): Promise<{ ok: true } | { ok: false; reason: string }> {
+async function ensureMicPermission(
+  errors: Dict["widgets"]["hume"]["errors"]
+): Promise<{ ok: true } | { ok: false; reason: string }> {
   if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
-    return { ok: false, reason: "Browser sem suporte a microfone" };
+    return { ok: false, reason: errors.noMicSupport };
   }
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -68,11 +76,11 @@ async function ensureMicPermission(): Promise<{ ok: true } | { ok: false; reason
   } catch (e) {
     const name = e instanceof Error ? e.name : "Unknown";
     const map: Record<string, string> = {
-      NotAllowedError: "Permissão de microfone negada",
-      NotFoundError: "Nenhum microfone encontrado",
-      NotReadableError: "Microfone em uso por outra aplicação",
+      NotAllowedError: errors.micDenied,
+      NotFoundError: errors.noMic,
+      NotReadableError: errors.micInUse,
     };
-    return { ok: false, reason: map[name] ?? "Falha a aceder ao microfone" };
+    return { ok: false, reason: map[name] ?? errors.micAccessFailed };
   }
 }
 
@@ -94,13 +102,14 @@ function FftBars({ values }: { values: number[] }) {
   );
 }
 
-function WidgetInner({ state, setState, setError, transcript, setTranscript, caller }: {
+function WidgetInner({ state, setState, setError, transcript, setTranscript, caller, dict }: {
   state: CallState;
   setState: (s: CallState) => void;
   setError: (s: string | null) => void;
   transcript: TranscriptEntry[];
   setTranscript: React.Dispatch<React.SetStateAction<TranscriptEntry[]>>;
   caller?: CallerContext;
+  dict: HumeDict;
 }) {
   const { connect, disconnect, status, isPlaying, micFft, error, readyState, messages } = useVoice();
   const transcriptRef = useRef<HTMLDivElement | null>(null);
@@ -116,10 +125,10 @@ function WidgetInner({ state, setState, setError, transcript, setTranscript, cal
     if (status.value === "connected") setState("active");
     else if (status.value === "disconnected" && state !== "idle") setState("idle");
     else if (status.value === "error") {
-      setError(status.reason ?? "Erro de conexão");
+      setError(status.reason ?? dict.hume.errors.connectionError);
       setState("error");
     }
-  }, [status, setState, setError, state]);
+  }, [status, setState, setError, state, dict]);
 
   useEffect(() => {
     log("readyState", readyState);
@@ -128,9 +137,9 @@ function WidgetInner({ state, setState, setError, transcript, setTranscript, cal
   useEffect(() => {
     if (error) {
       log("voice error", error);
-      setError(error.message ?? "Erro");
+      setError(error.message ?? dict.hume.errors.genericError);
     }
-  }, [error, setError]);
+  }, [error, setError, dict]);
 
   // Build transcript live from messages stream
   useEffect(() => {
@@ -167,7 +176,7 @@ function WidgetInner({ state, setState, setError, transcript, setTranscript, cal
     setError(null);
     setTranscript([]);
     setState("permission");
-    const mic = await ensureMicPermission();
+    const mic = await ensureMicPermission(dict.hume.errors);
     if (!mic.ok) {
       setError(mic.reason);
       setState("error");
@@ -177,7 +186,7 @@ function WidgetInner({ state, setState, setError, transcript, setTranscript, cal
     setState("connecting");
     const token = await fetchToken();
     if (!token) {
-      setError("Não foi possível obter token de acesso");
+      setError(dict.hume.errors.noToken);
       setState("error");
       return;
     }
@@ -202,7 +211,7 @@ function WidgetInner({ state, setState, setError, transcript, setTranscript, cal
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       log("connect failed", msg);
-      setError(`Falha a conectar: ${msg}`);
+      setError(`${dict.hume.errors.connectFailedPrefix}${msg}`);
       setState("error");
     }
   }
@@ -220,16 +229,16 @@ function WidgetInner({ state, setState, setError, transcript, setTranscript, cal
   const isBusy = state === "connecting" || state === "ending" || state === "permission";
 
   const label =
-    state === "idle" ? "Falar com a Ana" :
-    state === "permission" ? "A pedir microfone…" :
-    state === "connecting" ? "A ligar…" :
-    state === "active" ? "Terminar chamada" :
-    state === "ending" ? "A desligar…" :
-    "Tentar novamente";
+    state === "idle" ? dict.hume.callButton :
+    state === "permission" ? dict.hume.requestingMic :
+    state === "connecting" ? dict.common.connecting :
+    state === "active" ? dict.common.endCall :
+    state === "ending" ? dict.hume.disconnecting :
+    dict.hume.retry;
 
   const subLabel =
     state === "active"
-      ? isPlaying ? "Ana está a falar…" : "À escuta…"
+      ? isPlaying ? dict.hume.speaking : dict.hume.listening
       : null;
 
   return (
@@ -276,7 +285,7 @@ function WidgetInner({ state, setState, setError, transcript, setTranscript, cal
         >
           {transcript.map((t) => (
             <p key={t.id} className={t.role === "assistant" ? "text-emerald-300" : "text-zinc-200"}>
-              <span className="text-zinc-500 mr-2">{t.role === "assistant" ? "Ana" : "Tu"}:</span>
+              <span className="text-zinc-500 mr-2">{t.role === "assistant" ? dict.common.agentName : dict.common.you}:</span>
               {t.text}
             </p>
           ))}
@@ -286,7 +295,7 @@ function WidgetInner({ state, setState, setError, transcript, setTranscript, cal
   );
 }
 
-export default function HumeWidget({ caller }: { caller?: CallerContext } = {}) {
+export default function HumeWidget({ caller, dict }: { caller?: CallerContext; dict: HumeDict }) {
   const [state, setState] = useState<CallState>("idle");
   const [error, setError] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
@@ -311,9 +320,9 @@ export default function HumeWidget({ caller }: { caller?: CallerContext } = {}) 
   const onMessage = useCallback((m: JSONMessage) => log("[provider] message", m.type), []);
   const onError = useCallback((e: { message?: string }) => {
     console.error("[HumeWidget] provider error", e);
-    setError(e?.message ?? "Erro desconhecido");
+    setError(e?.message ?? dict.hume.errors.unknownError);
     setState("error");
-  }, []);
+  }, [dict]);
   const onOpen = useCallback(() => log("[provider] open"), []);
   const onClose = useCallback((e: unknown) => {
     log("[provider] close", e);
@@ -334,6 +343,7 @@ export default function HumeWidget({ caller }: { caller?: CallerContext } = {}) 
         transcript={transcript}
         setTranscript={setTranscript}
         caller={caller}
+        dict={dict}
       />
       {error && (
         <div className="mt-3 max-w-xl mx-auto rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm text-red-300">

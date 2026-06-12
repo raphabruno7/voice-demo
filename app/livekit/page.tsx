@@ -2,8 +2,13 @@ export const dynamic = "force-dynamic";
 
 import { Badge } from "@/components/ui/badge";
 import GeminiLiveWidget from "@/components/GeminiLiveWidget";
+import { getLang } from "@/lib/i18n/lang";
+import { dictionaries } from "@/lib/i18n/dictionaries";
 
-export default function LiveKitPage() {
+export default async function LiveKitPage() {
+  const lang = await getLang();
+  const dict = dictionaries[lang];
+
   return (
     <main className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center px-6 py-20">
       <div className="max-w-xl w-full text-center">
@@ -11,28 +16,28 @@ export default function LiveKitPage() {
           variant="outline"
           className="border-violet-500/40 text-violet-400 bg-violet-500/10 mb-6"
         >
-          Teste · Gemini Live
+          {dict.livekit.badge}
         </Badge>
 
         <h1 className="text-4xl sm:text-5xl font-bold text-white leading-tight uppercase tracking-wide">
-          Gemini Live{" "}
-          <span className="text-violet-400">via LiveKit</span>
+          {dict.livekit.title}{" "}
+          <span className="text-violet-400">{dict.livekit.titleHighlight}</span>
         </h1>
 
         <p className="mt-4 text-zinc-400 text-lg leading-relaxed">
-          Agente de voz com{" "}
-          <strong className="text-white">Google Gemini Live</strong> — teste de qualidade de voz e latência em browser, antes de ligar ao telefone.
+          {dict.livekit.descBefore}{" "}
+          <strong className="text-white">{dict.livekit.descBold}</strong> {dict.livekit.descAfter}
         </p>
 
         <p className="mt-4 text-zinc-500 text-sm">
-          Powered by Gemini 2.0 Flash · LiveKit · Ana pt-PT
+          {dict.livekit.powered}
         </p>
 
-        <GeminiLiveWidget />
+        <GeminiLiveWidget dict={{ common: dict.widgets.common, livekit: dict.widgets.livekit }} />
 
         <div className="mt-16 border-t border-white/10 pt-8 text-sm text-zinc-500">
           <a href="/" className="hover:text-zinc-300 transition-colors">
-            ← Voltar ao Hume EVI
+            {dict.livekit.back}
           </a>
         </div>
       </div>

@@ -25,7 +25,7 @@ Todas as páginas (`app/page.tsx`, `app/hume/page.tsx`, `app/livekit/page.tsx`, 
 ### `components/LanguageToggle.tsx` (novo, client)
 
 - Botão "PT / EN" estilo pill (consistente com os links do `AgentNav`).
-- Ao clicar: `document.cookie = "lang=<novo>; path=/; max-age=31536000"` seguido de `router.refresh()`.
+- Ao clicar: `document.cookie = "lang=<novo>; path=/; max-age=31536000"` seguido de `window.location.reload()`. (`router.refresh()` foi tentado primeiro, mas em dev/Turbopack o conteúdo servido pelo RSC payload não reflectia o novo cookie mesmo após vários segundos — reload garante o idioma correcto de forma fiável.)
 - Renderizado dentro do `AgentNav`.
 
 ### `app/layout.tsx`

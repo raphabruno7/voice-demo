@@ -2,16 +2,31 @@
 
 import { useState } from "react";
 import { ConversationProvider, useConversation } from "@elevenlabs/react";
+import type { Dict } from "@/lib/i18n/dictionaries";
 
 type CallState = "idle" | "connecting" | "active" | "ending";
+type TranscriptEntry = { role: "user" | "agent"; text: string };
 
-function WidgetInner() {
+type ElevenLabsDict = {
+  common: Dict["widgets"]["common"];
+  elevenlabs: Dict["widgets"]["elevenlabs"];
+};
+
+function WidgetInner({ dict }: { dict: ElevenLabsDict }) {
   const [state, setState] = useState<CallState>("idle");
+  const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
+  const [textInput, setTextInput] = useState("");
 
   const conversation = useConversation({
     onConnect: () => setState("active"),
     onDisconnect: () => setState("idle"),
     onError: () => setState("idle"),
+    onMessage: ({ message, source }) => {
+      setTranscript((prev) => [
+        ...prev,
+        { role: source === "user" ? "user" : "agent", text: message },
+      ]);
+    },
   });
 
   async function handleClick() {
@@ -23,6 +38,7 @@ function WidgetInner() {
     }
 
     setState("connecting");
+    setTranscript([]);
     try {
       const res = await fetch("/api/elevenlabs/signed-url", { method: "POST" });
       if (!res.ok) throw new Error("Failed to get signed URL");
@@ -33,17 +49,25 @@ function WidgetInner() {
     }
   }
 
+  function handleSendText() {
+    const text = textInput.trim();
+    if (!text || state !== "active") return;
+    conversation.sendUserMessage(text);
+    setTranscript((prev) => [...prev, { role: "user", text }]);
+    setTextInput("");
+  }
+
   const isSpeaking = conversation.isSpeaking;
   const label =
-    state === "idle" ? "Falar com a Ana — grátis, agora" :
-    state === "connecting" ? "A ligar…" :
-    state === "active" ? "Terminar chamada" : "A terminar…";
+    state === "idle" ? dict.elevenlabs.callButton :
+    state === "connecting" ? dict.common.connecting :
+    state === "active" ? dict.common.endCall : dict.elevenlabs.ending;
 
   const isActive = state === "active";
   const isLoading = state === "connecting" || state === "ending";
 
   return (
-    <div className="mt-8 flex flex-col items-center gap-3">
+    <div className="mt-8 flex flex-col items-center gap-3 w-full">
       <button
         onClick={handleClick}
         disabled={isLoading}
@@ -71,16 +95,48 @@ function WidgetInner() {
         </span>
       </button>
       {isActive && (
-        <p className="text-xs text-zinc-500 animate-pulse">A Ana está a ouvir…</p>
+        <p className="text-xs text-zinc-500 animate-pulse">{dict.elevenlabs.listening}</p>
       )}
+
+      {transcript.length > 0 && (
+        <div className="mt-2 w-full max-h-64 overflow-y-auto rounded-lg border border-white/10 bg-black/20 p-3 text-left text-sm space-y-2">
+          {transcript.map((entry, i) => (
+            <p key={i} className={entry.role === "user" ? "text-zinc-200" : "text-amber-300"}>
+              <span className="font-semibold">{entry.role === "user" ? `${dict.common.you}: ` : `${dict.common.agentName}: `}</span>
+              {entry.text}
+            </p>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-2 w-full flex items-center gap-2">
+        <input
+          type="text"
+          value={textInput}
+          onChange={(e) => setTextInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleSendText();
+          }}
+          disabled={!isActive}
+          placeholder={isActive ? dict.elevenlabs.inputPlaceholder : dict.elevenlabs.inputPlaceholderDisabled}
+          className="flex-1 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50"
+        />
+        <button
+          onClick={handleSendText}
+          disabled={!isActive || !textInput.trim()}
+          className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-zinc-200 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {dict.elevenlabs.send}
+        </button>
+      </div>
     </div>
   );
 }
 
-export default function ElevenLabsWidget() {
+export default function ElevenLabsWidget({ dict }: { dict: ElevenLabsDict }) {
   return (
     <ConversationProvider>
-      <WidgetInner />
+      <WidgetInner dict={dict} />
     </ConversationProvider>
   );
 }

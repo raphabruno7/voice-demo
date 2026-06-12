@@ -7,8 +7,14 @@ import {
   useVoiceAssistant,
   useConnectionState,
 } from "@livekit/components-react";
+import type { Dict } from "@/lib/i18n/dictionaries";
 
-function VoiceControls({ onDisconnect }: { onDisconnect: () => void }) {
+type LiveKitDict = {
+  common: Dict["widgets"]["common"];
+  livekit: Dict["widgets"]["livekit"];
+};
+
+function VoiceControls({ onDisconnect, dict }: { onDisconnect: () => void; dict: LiveKitDict }) {
   const { state } = useVoiceAssistant();
   const connectionState = useConnectionState();
 
@@ -16,10 +22,10 @@ function VoiceControls({ onDisconnect }: { onDisconnect: () => void }) {
   const agentState = state ?? "connecting";
 
   const statusLabel =
-    agentState === "listening" ? "A ouvir…" :
-    agentState === "thinking"  ? "A processar…" :
-    agentState === "speaking"  ? "A falar…" :
-    "A ligar…";
+    agentState === "listening" ? dict.livekit.statusListening :
+    agentState === "thinking"  ? dict.livekit.statusThinking :
+    agentState === "speaking"  ? dict.livekit.statusSpeaking :
+    dict.common.connecting;
 
   return (
     <div className="mt-8 flex flex-col items-center gap-3">
@@ -30,7 +36,7 @@ function VoiceControls({ onDisconnect }: { onDisconnect: () => void }) {
         <span className="absolute inset-0 rounded-full animate-ping bg-red-500/20" />
         <span className="relative flex items-center gap-2">
           <span className={`w-2 h-2 rounded-full ${agentState === "speaking" ? "bg-red-400 animate-pulse" : "bg-red-400"}`} />
-          Terminar chamada
+          {dict.common.endCall}
         </span>
       </button>
       {isConnected && (
@@ -40,7 +46,7 @@ function VoiceControls({ onDisconnect }: { onDisconnect: () => void }) {
   );
 }
 
-export default function GeminiLiveWidget() {
+export default function GeminiLiveWidget({ dict }: { dict: LiveKitDict }) {
   const [connectionDetails, setConnectionDetails] = useState<{ token: string; url: string } | null>(null);
   const [connecting, setConnecting] = useState(false);
 
@@ -83,7 +89,7 @@ export default function GeminiLiveWidget() {
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
               <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
             </svg>
-            {connecting ? "A ligar…" : "Talk to Ana — Gemini Live"}
+            {connecting ? dict.common.connecting : dict.livekit.callButton}
           </span>
         </button>
       </div>
@@ -101,7 +107,7 @@ export default function GeminiLiveWidget() {
       onError={() => handleDisconnect()}
     >
       <RoomAudioRenderer />
-      <VoiceControls onDisconnect={handleDisconnect} />
+      <VoiceControls onDisconnect={handleDisconnect} dict={dict} />
     </LiveKitRoom>
   );
 }

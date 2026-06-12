@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import type { Dict } from "@/lib/i18n/dictionaries";
 
-export default function CallMeForm() {
+export default function CallMeForm({ dict }: { dict: Dict["widgets"]["callMe"] }) {
   const [phone, setPhone] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
@@ -23,19 +24,19 @@ export default function CallMeForm() {
   return (
     <div className="mt-10 rounded-xl border border-white/10 bg-white/5 p-6 text-left">
       <h2 className="text-white font-semibold text-lg mb-1">
-        Prefer to receive the call?
+        {dict.heading}
       </h2>
       <p className="text-zinc-400 text-sm mb-4">
-        Enter your number and Ana will call you in seconds.
+        {dict.description}
       </p>
 
       {status === "success" ? (
-        <p className="text-emerald-400 font-medium">Ana is calling you now!</p>
+        <p className="text-emerald-400 font-medium">{dict.success}</p>
       ) : (
         <form onSubmit={handleSubmit} className="flex gap-2">
           <input
             type="tel"
-            placeholder="+1 555 123 4567"
+            placeholder={dict.placeholder}
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             required
@@ -46,13 +47,13 @@ export default function CallMeForm() {
             disabled={status === "loading"}
             className="bg-emerald-500 hover:bg-emerald-400 text-black font-semibold"
           >
-            {status === "loading" ? "Calling..." : "Call Me"}
+            {status === "loading" ? dict.calling : dict.button}
           </Button>
         </form>
       )}
 
       {status === "error" && (
-        <p className="text-red-400 text-sm mt-2">Failed to start the call. Please try again.</p>
+        <p className="text-red-400 text-sm mt-2">{dict.error}</p>
       )}
     </div>
   );
