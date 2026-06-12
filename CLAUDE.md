@@ -27,7 +27,7 @@ Live voice AI agent (Ana) — portfolio demo de Raphael Bruno. Objectivo: state-
 |---|---|---|---|
 | **Hume EVI 4-mini** | ✅ Activo | pt-PT nativo, prosódia adaptativa | `/` |
 | **LiveKit + Gemini Live** | ✅ Activo (browser) | Melhor fluxo de conversa, multilíngue, candidato a telefone | `/livekit` |
-| **ElevenLabs ConvAI** | 🟡 Standby | pt-PT (voz Marta), EN, ES, FR, DE | (sem página dedicada) |
+| **ElevenLabs ConvAI** | ✅ Activo | pt-PT (voz Marta), EN, ES, FR, DE | `/elevenlabs` |
 | **Vapi + Groq Llama** | 🟡 Standby | Outbound call (US number) | (form CallMe) |
 
 **Decisão por mercado (Maio 2026):**
@@ -57,12 +57,14 @@ app/
   page.tsx                              # / → Hume EVI (inclui <AgentNav /> explicitamente)
   livekit/
     page.tsx                            # /livekit → Gemini Live via LiveKit
+  elevenlabs/
+    page.tsx                            # ✅ /elevenlabs → ElevenLabs Conversational AI
   api/
     hume/access-token/route.ts          # OAuth Hume — fetchAccessToken (server-side)
     book-meeting/route.ts               # ✅ Tool server-side (Hume + LiveKit) — Calendar + WhatsApp
     livekit/token/route.ts              # ✅ LiveKit room + dispatch — gera JWT para browser
     livekit/webhook/route.ts            # LiveKit room events → Supabase calls
-    elevenlabs/signed-url/route.ts      # ElevenLabs ConvAI signed URL (standby)
+    elevenlabs/signed-url/route.ts      # ✅ ElevenLabs ConvAI signed URL
     vapi/webhook/route.ts               # Vapi event handler (standby)
     call/route.ts                       # Outbound call via Vapi REST (standby)
     calendar/route.ts                   # Tool endpoint Vapi — Google Calendar (standby)
@@ -74,10 +76,10 @@ app/
       cancel/route.ts                   # ✅ Tool agente — cancela marcação (Google Calendar)
       opt-out/route.ts                  # ✅ Tool agente — regista opt-out de chamadas automáticas
 components/
-  AgentNav.tsx                          # ✅ Nav top-right — links entre /  e /livekit (+ futuros)
+  AgentNav.tsx                          # ✅ Nav top-right — links entre / , /livekit e /elevenlabs
   HumeWidget.tsx                        # ✅ Activo em / — usa @humeai/voice-react
   GeminiLiveWidget.tsx                  # ✅ Activo em /livekit — usa @livekit/components-react
-  LiveKitWidget.tsx                     # Standby — apesar do nome, usa @elevenlabs/react (legacy)
+  ElevenLabsWidget.tsx                  # ✅ Activo em /elevenlabs — usa @elevenlabs/react
   VapiWidget.tsx                        # Standby — Vapi web SDK
   CallStats.tsx                         # Async server component, revalidate 60s
   CallMeForm.tsx                        # Outbound call trigger
@@ -163,12 +165,16 @@ vercel.json                             # ✅ Vercel Cron — /api/cron/outbound
 
 Reutiliza `OUTBOUND_TRUNK_ID`, `TRANSFER_RING_TIMEOUT_S`, `TRANSFER_CALLER_ID_NAME` (já documentadas acima) e `WEBHOOK_SECRET` (auth `x-vapi-secret` nos endpoints `/api/appointments/*`, mesmo padrão do `book_meeting`/`transfer-fallback`).
 
-### Standby (outros provedores)
+### Activas — ElevenLabs ConvAI
 | Variable | Where |
 |---|---|
 | `ELEVENLABS_API_KEY` | `/api/elevenlabs/signed-url` |
 | `ELEVENLABS_AGENT_ID` | `/api/elevenlabs/signed-url` |
 | `ELEVENLABS_VOICE_ID` | (override de voz, opcional) |
+
+### Standby (outros provedores)
+| Variable | Where |
+|---|---|
 | `VAPI_WEBHOOK_SECRET` | Webhook auth header |
 | `VAPI_API_KEY` | Outbound call (`/api/call`) |
 | `VAPI_ASSISTANT_ID` | Outbound call payload |
@@ -186,7 +192,7 @@ Cada provedor tem a sua própria página. O `AgentNav` em `components/AgentNav.t
 const agents = [
   { label: "Hume EVI", href: "/" },
   { label: "Gemini Live", href: "/livekit" },
-  // { label: "ElevenLabs", href: "/elevenlabs" },  // adicionar quando criar a página
+  { label: "ElevenLabs", href: "/elevenlabs" },
 ];
 ```
 
@@ -292,6 +298,7 @@ Production URL: `voice-demo-navy.vercel.app`
 - **Concorrência** — ✅ `WorkerOptions` afinado (`num_idle_processes=2`, `load_threshold=0.75`) para chamadas concorrentes sem latência de arranque.
 - **Branded caller ID (CNAM)** — ✅ `setup_sip.py` aceita `DIDWW_OUTBOUND_ADDRESS` e cria outbound trunk; `TRANSFER_CALLER_ID_NAME` define o display name SIP. ⏳ **À espera de:** registo CNAM do número +351 no dashboard DIDWW (manual, após compra do número).
 - **Outbound confirmation calls ("Ana liga-te")** — ✅ Código completo (Junho 2026): migration `outbound_appointments`, `lib/google-calendar.ts` (`listUpcomingEvents`/`updateEventTime`/`cancelEvent`), `lib/livekit-outbound.ts` (`triggerOutboundCall`), cron `/api/cron/outbound-calls` (+ `vercel.json`), endpoints `/api/appointments/{confirm,reschedule,cancel,opt-out}`, branch em `agent.py` + `system-prompt-confirmation.txt`. Ver secção dedicada "Outbound — confirmação/remarcação/cancelamento de marcações" abaixo. ⏳ **À espera de:** (1) número +351 + `OUTBOUND_TRUNK_ID` para teste SIP outbound real (mesmo caveat do warm transfer); (2) `CRON_SECRET` configurado em Vercel para activar o cron; (3) **decisão de negócio do Raphael por cada cliente (clínica/imobiliária)** sobre base legal GDPR e divulgação aos próprios clientes finais antes de activar chamadas automáticas em produção real — o código cumpre a divulgação de IA (Art. 50 AI Act) e o opt-out, mas a base legal/consentimento é responsabilidade do negócio que usa a Ana, não algo que o código resolve sozinho.
+- **ElevenLabs ConvAI (`/elevenlabs`)** — ✅ Página + nav link + widget activados (Junho 2026), reaproveitando `/api/elevenlabs/signed-url` (já implementado) e `components/ElevenLabsWidget.tsx` (renomeado de `LiveKitWidget.tsx`, copy traduzida para pt-PT). ⏳ **À espera de:** (1) `ELEVENLABS_AGENT_ID` + `ELEVENLABS_API_KEY` do agente a reactivar, configurados em `.env.local` + Vercel (Production/Development); (2) validar em streaming real a qualidade da voz pt-PT ("Marta") — caveat conhecido de iterações anteriores: pipeline STT+LLM+TTS (não end-to-end), pode soar diferente do Playground.
 
 ## Gemini Live — referência operacional
 
