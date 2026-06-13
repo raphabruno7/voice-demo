@@ -115,21 +115,21 @@ export default async function PortfolioPage() {
           </a>
           <span className="hidden sm:inline">·</span>
           <a
-            href="https://linkedin.com/in/raphabruno7"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-zinc-300 transition-colors"
-          >
-            LinkedIn
-          </a>
-          <span className="hidden sm:inline">·</span>
-          <a
             href="https://upwork.com/freelancers/raphabruno7"
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-zinc-300 transition-colors"
           >
             Upwork
+          </a>
+          <span className="hidden sm:inline">·</span>
+          <a
+            href="https://linkedin.com/in/raphabruno7"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-zinc-300 transition-colors"
+          >
+            LinkedIn
           </a>
         </div>
       </div>

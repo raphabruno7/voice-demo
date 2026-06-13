@@ -35,9 +35,34 @@ export default async function ElevenLabsPage() {
 
         <ElevenLabsWidget dict={{ common: dict.widgets.common, elevenlabs: dict.widgets.elevenlabs }} />
 
-        <div className="mt-16 border-t border-white/10 pt-8 text-sm text-zinc-500">
+        <div className="mt-16 border-t border-white/10 pt-8 flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-zinc-500">
           <a href="/" className="hover:text-zinc-300 transition-colors">
             {dict.elevenlabs.back}
+          </a>
+          <span className="hidden sm:inline">·</span>
+          <a
+            href="mailto:work@raphaelbruno.dev"
+            className="hover:text-zinc-300 transition-colors"
+          >
+            work@raphaelbruno.dev
+          </a>
+          <span className="hidden sm:inline">·</span>
+          <a
+            href="https://upwork.com/freelancers/raphabruno7"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-zinc-300 transition-colors"
+          >
+            Upwork
+          </a>
+          <span className="hidden sm:inline">·</span>
+          <a
+            href="https://linkedin.com/in/raphabruno7"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-zinc-300 transition-colors"
+          >
+            LinkedIn
           </a>
         </div>
       </div>

@@ -409,7 +409,6 @@ async def entrypoint(ctx: JobContext):
     model = google.beta.realtime.RealtimeModel(
         model="gemini-2.5-flash-native-audio-latest",
         voice="Aoede",
-        language="pt-PT",
         api_key=os.environ["GEMINI_API_KEY"],
         instructions=instructions,
         temperature=0.3,

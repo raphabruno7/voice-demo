@@ -163,7 +163,7 @@ vercel.json                             # ✅ Vercel Cron — /api/cron/outbound
 ### Activas — Outbound confirmation calls ("Ana liga-te")
 | Variable | Where | Default |
 |---|---|---|
-| `CRON_SECRET` | `/api/cron/outbound-calls` — valida `Authorization: Bearer ${CRON_SECRET}` enviado pelo Vercel Cron | — (obrigatório) |
+| `CRON_SECRET` | `/api/cron/outbound-calls` — valida `Authorization: Bearer ${CRON_SECRET}` enviado pelo Vercel Cron | ✅ definido em Vercel Production (Junho 2026) |
 | `MAX_OUTBOUND_CALLS_PER_RUN` | Cron — cap de chamadas disparadas por execução (protege reputação do número) | `3` |
 | `MAX_REMINDER_ATTEMPTS` | Cron — máximo de tentativas de chamada por marcação | `1` |
 | `REMINDER_WINDOW_START_H` / `REMINDER_WINDOW_END_H` | Cron — janela de marcações a confirmar, em horas a partir de agora (default = "marcações de amanhã") | `20` / `28` |
@@ -305,7 +305,7 @@ Production URL: `voice-demo-navy.vercel.app`
 - **Warm transfer (`transfer_to_human`)** — ✅ Implementado em `agent.py` (attended transfer com `wait_until_answered` + deteção de voicemail/no-answer via `ringing_timeout`, fallback blind REFER, fallback WhatsApp via `/api/transfer-fallback`). ⏳ **À espera de:** número +351 + `OUTBOUND_TRUNK_ID` (de `setup_sip.py`) para teste end-to-end real e confirmar comportamento da DIDWW com `create_sip_participant`/REFER.
 - **Concorrência** — ✅ `WorkerOptions` afinado (`num_idle_processes=2`, `load_threshold=0.75`) para chamadas concorrentes sem latência de arranque.
 - **Branded caller ID (CNAM)** — ✅ `setup_sip.py` aceita `DIDWW_OUTBOUND_ADDRESS` e cria outbound trunk; `TRANSFER_CALLER_ID_NAME` define o display name SIP. ⏳ **À espera de:** registo CNAM do número +351 no dashboard DIDWW (manual, após compra do número).
-- **Outbound confirmation calls ("Ana liga-te")** — ✅ Código completo (Junho 2026): migration `outbound_appointments`, `lib/google-calendar.ts` (`listUpcomingEvents`/`updateEventTime`/`cancelEvent`), `lib/livekit-outbound.ts` (`triggerOutboundCall`), cron `/api/cron/outbound-calls` (+ `vercel.json`), endpoints `/api/appointments/{confirm,reschedule,cancel,opt-out}`, branch em `agent.py` + `system-prompt-confirmation.txt`. Ver secção dedicada "Outbound — confirmação/remarcação/cancelamento de marcações" abaixo. ⏳ **À espera de:** (1) número +351 + `OUTBOUND_TRUNK_ID` para teste SIP outbound real (mesmo caveat do warm transfer); (2) `CRON_SECRET` configurado em Vercel para activar o cron; (3) **decisão de negócio do Raphael por cada cliente (clínica/imobiliária)** sobre base legal GDPR e divulgação aos próprios clientes finais antes de activar chamadas automáticas em produção real — o código cumpre a divulgação de IA (Art. 50 AI Act) e o opt-out, mas a base legal/consentimento é responsabilidade do negócio que usa a Ana, não algo que o código resolve sozinho.
+- **Outbound confirmation calls ("Ana liga-te")** — ✅ Código completo (Junho 2026): migration `outbound_appointments`, `lib/google-calendar.ts` (`listUpcomingEvents`/`updateEventTime`/`cancelEvent`), `lib/livekit-outbound.ts` (`triggerOutboundCall`), cron `/api/cron/outbound-calls` (+ `vercel.json`), endpoints `/api/appointments/{confirm,reschedule,cancel,opt-out}`, branch em `agent.py` + `system-prompt-confirmation.txt`. Ver secção dedicada "Outbound — confirmação/remarcação/cancelamento de marcações" abaixo. `CRON_SECRET` ✅ já definido em Vercel Production. ⏳ **À espera de:** (1) número +351 + `OUTBOUND_TRUNK_ID` para teste SIP outbound real (mesmo caveat do warm transfer); (2) **decisão de negócio do Raphael por cada cliente (clínica/imobiliária)** sobre base legal GDPR e divulgação aos próprios clientes finais antes de activar chamadas automáticas em produção real — o código cumpre a divulgação de IA (Art. 50 AI Act) e o opt-out, mas a base legal/consentimento é responsabilidade do negócio que usa a Ana, não algo que o código resolve sozinho.
 - **ElevenLabs ConvAI (`/elevenlabs`)** — ✅ Completo (Junho 2026). Página + nav link + widget (voz + modo texto) activados, reaproveitando `/api/elevenlabs/signed-url` e `components/ElevenLabsWidget.tsx`. Agent `agent_9401krm0dzycem49zckkhg3e2pzy` ("Ana") configurado via API: prompt `elevenlabs-agent/system-prompt.txt` (pt-PT, registo Lisboa), tool `book_meeting` (`tool_8401kty2hv38fkjrs9rtbdy5c8ge`, webhook → `/api/book-meeting`, mesmo `HUME_TOOL_SECRET`). Voz: `bBNhdwrIjl4fcVYiRbT2`, LLM `claude-sonnet-4`. `ELEVENLABS_API_KEY`/`ELEVENLABS_AGENT_ID` em `.env.local` + Vercel (Production/Development). ⏳ **À espera de:** validar em streaming real a qualidade da voz pt-PT — caveat conhecido: pipeline STT+LLM+TTS (não end-to-end), pode soar diferente do Playground.
 
 ## Gemini Live — referência operacional
@@ -313,7 +313,7 @@ Production URL: `voice-demo-navy.vercel.app`
 - **Modelo activo:** `gemini-2.5-flash-native-audio-latest` (bidiGenerateContent)
 - **API Key:** service-account-bound key criada no projecto `gen-lang-client-0657432502` (Google Cloud)
 - **Voz:** `Aoede` (configurável no `RealtimeModel`)
-- **Linguagem:** `pt-PT` nativo (definido em `agent.py`)
+- **Linguagem:** pt-PT via system prompt (`[VOICE DIRECTION: ...]`) — **não** definir `language=` no `RealtimeModel`. O `gemini-2.5-flash-native-audio-latest` rejeita `"pt-PT"` e `"pt"` com `APIError 1007 Unsupported language code` (verificado Junho 2026). Apenas `pt` genérico aparece na lista de idiomas suportados pela Live API, mas mesmo esse é rejeitado por este modelo — deixar o parâmetro omitido e confiar nas instruções de sistema.
 - **Speech detection:** `realtime_input_config` com `EndSensitivity.END_SENSITIVITY_HIGH`, silence 300ms, prefix padding 100ms
 - **System prompt:** `livekit-agent/system-prompt.txt` — reescrito em português europeu (Lisboa), inclui `[VOICE DIRECTION: ...]` para ritmo conversacional
 - **Worker:** `livekit-agent/agent.py` — `google.beta.realtime.RealtimeModel`, Python 3.12, venv em `livekit-agent/venv/`
@@ -375,7 +375,7 @@ Production URL: `voice-demo-navy.vercel.app`
 
 ## Outbound — confirmação/remarcação/cancelamento de marcações ("Ana liga-te")
 
-**Objectivo:** a Ana liga proactivamente a clientes de clínicas/imobiliárias para confirmar a marcação do dia seguinte, reduzindo no-shows sem trabalho manual da recepção. Cliente pode confirmar, pedir para remarcar, cancelar, ou pedir para não receber mais chamadas (opt-out). **Estado: código completo, à espera do número +351 (`OUTBOUND_TRUNK_ID`) e de `CRON_SECRET` para activação real** — mesmo padrão "pronto, à espera do número" do warm transfer.
+**Objectivo:** a Ana liga proactivamente a clientes de clínicas/imobiliárias para confirmar a marcação do dia seguinte, reduzindo no-shows sem trabalho manual da recepção. Cliente pode confirmar, pedir para remarcar, cancelar, ou pedir para não receber mais chamadas (opt-out). **Estado: código completo, `CRON_SECRET` já configurado, à espera do número +351 (`OUTBOUND_TRUNK_ID`) para activação real** — mesmo padrão "pronto, à espera do número" do warm transfer.
 
 ### Fluxo end-to-end
 

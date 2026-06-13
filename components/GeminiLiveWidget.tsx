@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   LiveKitRoom,
   RoomAudioRenderer,
   useVoiceAssistant,
   useConnectionState,
+  useTranscriptions,
+  useLocalParticipant,
 } from "@livekit/components-react";
 import type { Dict } from "@/lib/i18n/dictionaries";
 
@@ -17,6 +19,9 @@ type LiveKitDict = {
 function VoiceControls({ onDisconnect, dict }: { onDisconnect: () => void; dict: LiveKitDict }) {
   const { state } = useVoiceAssistant();
   const connectionState = useConnectionState();
+  const { localParticipant } = useLocalParticipant();
+  const transcriptions = useTranscriptions();
+  const transcriptRef = useRef<HTMLDivElement | null>(null);
 
   const isConnected = connectionState === "connected";
   const agentState = state ?? "connecting";
@@ -27,8 +32,26 @@ function VoiceControls({ onDisconnect, dict }: { onDisconnect: () => void; dict:
     agentState === "speaking"  ? dict.livekit.statusSpeaking :
     dict.common.connecting;
 
+  const transcript = useMemo(
+    () =>
+      [...transcriptions]
+        .sort((a, b) => a.streamInfo.timestamp - b.streamInfo.timestamp)
+        .map((t) => ({
+          id: t.streamInfo.id,
+          role: t.participantInfo.identity === localParticipant.identity ? "user" : "assistant",
+          text: t.text,
+        })),
+    [transcriptions, localParticipant.identity]
+  );
+
+  useEffect(() => {
+    const el = transcriptRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+  }, [transcript]);
+
   return (
-    <div className="mt-8 flex flex-col items-center gap-3">
+    <div className="mt-8 flex flex-col items-center gap-3 w-full max-w-xl mx-auto">
       <button
         onClick={onDisconnect}
         className="relative px-8 py-4 rounded-full font-semibold text-base transition-all duration-200 bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-950 focus:ring-red-500"
@@ -41,6 +64,20 @@ function VoiceControls({ onDisconnect, dict }: { onDisconnect: () => void; dict:
       </button>
       {isConnected && (
         <p className="text-xs text-zinc-500 animate-pulse">{statusLabel}</p>
+      )}
+
+      {transcript.length > 0 && (
+        <div
+          ref={transcriptRef}
+          className="mt-2 w-full max-h-64 overflow-y-auto rounded-lg border border-zinc-800 bg-zinc-950/60 p-3 text-sm space-y-2 scroll-smooth"
+        >
+          {transcript.map((t) => (
+            <p key={t.id} className={t.role === "assistant" ? "text-violet-300" : "text-zinc-200"}>
+              <span className="text-zinc-500 mr-2">{t.role === "assistant" ? dict.common.agentName : dict.common.you}:</span>
+              {t.text}
+            </p>
+          ))}
+        </div>
       )}
     </div>
   );
