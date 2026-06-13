@@ -84,7 +84,7 @@ Os três demos degradam graciosamente sem configuração: `/vapi` mostra `dict.w
 
 - **Twilio** (`/twilio`):
   - Comprar um número Twilio (não-PT aceitável — mais barato e sem burocracia ANACOM para a demo).
-  - Preencher `TWILIO_API_KEY`, `TWILIO_API_SECRET`, `TWILIO_TWIML_APP_SID`, `NEXT_PUBLIC_TWILIO_NUMBER`, `TWILIO_AGENT_WSS_URL`, `ANTHROPIC_API_KEY` (este último para o relay standalone).
+  - Preencher `TWILIO_API_KEY`, `TWILIO_API_SECRET`, `TWILIO_TWIML_APP_SID`, `NEXT_PUBLIC_TWILIO_NUMBER`, `TWILIO_AGENT_WSS_URL`, `ANTHROPIC_API_KEY` (este último para o relay standalone). Reutiliza `TWILIO_ACCOUNT_SID` (já existe para o WhatsApp; também exigido por `/api/twilio/token`).
   - Deploy de `twilio-agent/` (Railway, como o `livekit-agent/`).
   - Configurar o TwiML App → Voice URL = `/api/twilio/twiml`.
   - **Depois disso**: adicionar tool-calling `book_meeting` ao `twilio-agent/server.js` (a fase 1 omite-o — o relay só faz chat por streaming); adicionar validação de assinatura Twilio à rota `/api/twilio/twiml`; considerar um shared-secret no WSS do relay (actualmente sem auth — aceitável até o URL ser público).
