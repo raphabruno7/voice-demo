@@ -12,6 +12,10 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const wss = new WebSocketServer({ port: PORT });
 console.log(`[twilio-agent] ConversationRelay WS listening on :${PORT}`);
 
+function safeSend(ws, obj) {
+  if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(obj));
+}
+
 wss.on("connection", (ws) => {
   const history = [];
 
@@ -20,7 +24,7 @@ wss.on("connection", (ws) => {
     try { msg = JSON.parse(raw.toString()); } catch { return; }
 
     if (msg.type === "setup") {
-      ws.send(JSON.stringify({ type: "text", token: "Olá, fala a Ana. Como te posso ajudar?", last: true }));
+      safeSend(ws, { type: "text", token: "Olá, fala a Ana. Como te posso ajudar?", last: true });
       return;
     }
 
@@ -42,17 +46,18 @@ wss.on("connection", (ws) => {
         for await (const event of stream) {
           if (event.type === "content_block_delta" && event.delta?.type === "text_delta") {
             full += event.delta.text;
-            ws.send(JSON.stringify({ type: "text", token: event.delta.text, last: false }));
+            safeSend(ws, { type: "text", token: event.delta.text, last: false });
           }
         }
-        ws.send(JSON.stringify({ type: "text", token: "", last: true }));
+        safeSend(ws, { type: "text", token: "", last: true });
         history.push({ role: "assistant", content: full });
       } catch (e) {
         console.error("[twilio-agent] LLM error:", e);
-        ws.send(JSON.stringify({ type: "text", token: "Desculpa, tive um problema técnico.", last: true }));
+        safeSend(ws, { type: "text", token: "Desculpa, tive um problema técnico.", last: true });
       }
     }
   });
 
+  ws.on("error", (err) => console.error("[twilio-agent] ws error:", err));
   ws.on("close", () => console.log("[twilio-agent] connection closed"));
 });

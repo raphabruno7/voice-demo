@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Device } from "@twilio/voice-sdk";
 import type { Dict } from "@/lib/i18n/dictionaries";
 
@@ -11,6 +11,10 @@ export default function TwilioWidget({ dict }: { dict: TwilioDict }) {
   const deviceRef = useRef<Device | null>(null);
   const [state, setState] = useState<CallState>("idle");
   const [available, setAvailable] = useState(true);
+
+  useEffect(() => {
+    return () => { deviceRef.current?.destroy(); };
+  }, []);
 
   async function handleClick() {
     if (state === "active" || state === "ending") {
