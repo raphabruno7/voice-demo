@@ -79,10 +79,10 @@ export default async function HumePage({
           </a>
           <span className="hidden sm:inline">·</span>
           <a
-            href="mailto:raphaelbruno.dev@gmail.com"
+            href="mailto:work@raphaelbruno.dev"
             className="hover:text-zinc-300 transition-colors"
           >
-            raphaelbruno.dev@gmail.com
+            work@raphaelbruno.dev
           </a>
           <span className="hidden sm:inline">·</span>
           <a

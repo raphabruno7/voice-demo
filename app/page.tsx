@@ -108,10 +108,10 @@ export default async function PortfolioPage() {
 
         <div className="mt-16 border-t border-white/10 pt-8 flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-zinc-500">
           <a
-            href="mailto:raphaelbruno.dev@gmail.com"
+            href="mailto:work@raphaelbruno.dev"
             className="hover:text-zinc-300 transition-colors"
           >
-            raphaelbruno.dev@gmail.com
+            work@raphaelbruno.dev
           </a>
           <span className="hidden sm:inline">·</span>
           <a
