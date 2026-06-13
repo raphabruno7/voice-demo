@@ -237,17 +237,17 @@ const pt: Dict = {
     back: "← Portfólio",
   },
   vapi: {
-    badge: "Pipeline · Vapi", title: "FALA COM A", titleHighlight: "ANA",
+    badge: "Pipeline · Vapi", title: "Vapi", titleHighlight: "Orquestrador de Voz",
     descBefore: "Esta demo usa o", descBold: "Vapi", descAfter: "a orquestrar Claude e voz portuguesa em tempo real.",
     powered: "Vapi · Claude Sonnet 4 · ElevenLabs (voz Marta, pt-PT)", back: "← Portfólio",
   },
   retell: {
-    badge: "Pipeline · Retell", title: "FALA COM A", titleHighlight: "ANA",
+    badge: "Pipeline · Retell", title: "Retell AI", titleHighlight: "Pipeline de Voz",
     descBefore: "Esta demo usa o", descBold: "Retell AI", descAfter: "para comparar outro orquestrador de pipeline.",
     powered: "Retell · Gemini · ElevenLabs (voz Marta, pt-PT)", back: "← Portfólio",
   },
   twilio: {
-    badge: "Telefonia · Twilio", title: "LIGA À", titleHighlight: "ANA",
+    badge: "Telefonia · Twilio", title: "Twilio", titleHighlight: "ConversationRelay",
     descBefore: "Esta demo usa o", descBold: "Twilio ConversationRelay", descAfter: "para chamadas de telefone reais.",
     powered: "Twilio ConversationRelay · Claude · ElevenLabs", back: "← Portfólio",
     phoneSoon: "Número em breve", phoneLabel: "Ou liga para:",
@@ -398,9 +398,9 @@ const en: Dict = {
     powered: "Powered by ElevenLabs ConvAI · pt-PT voice",
     back: "← Portfolio",
   },
-  vapi: { badge: "Pipeline · Vapi", title: "TALK TO", titleHighlight: "ANA", descBefore: "This demo uses", descBold: "Vapi", descAfter: "to orchestrate Claude and a Portuguese voice in real time.", powered: "Vapi · Claude Sonnet 4 · ElevenLabs (Marta voice, pt-PT)", back: "← Portfolio" },
-  retell: { badge: "Pipeline · Retell", title: "TALK TO", titleHighlight: "ANA", descBefore: "This demo uses", descBold: "Retell AI", descAfter: "to compare another pipeline orchestrator.", powered: "Retell · Gemini · ElevenLabs (Marta voice, pt-PT)", back: "← Portfolio" },
-  twilio: { badge: "Telephony · Twilio", title: "CALL", titleHighlight: "ANA", descBefore: "This demo uses", descBold: "Twilio ConversationRelay", descAfter: "for real phone calls.", powered: "Twilio ConversationRelay · Claude · ElevenLabs", back: "← Portfolio", phoneSoon: "Number coming soon", phoneLabel: "Or call:" },
+  vapi: { badge: "Pipeline · Vapi", title: "Vapi", titleHighlight: "Voice Orchestrator", descBefore: "This demo uses", descBold: "Vapi", descAfter: "to orchestrate Claude and a Portuguese voice in real time.", powered: "Vapi · Claude Sonnet 4 · ElevenLabs (Marta voice, pt-PT)", back: "← Portfolio" },
+  retell: { badge: "Pipeline · Retell", title: "Retell AI", titleHighlight: "Voice Pipeline", descBefore: "This demo uses", descBold: "Retell AI", descAfter: "to compare another pipeline orchestrator.", powered: "Retell · Gemini · ElevenLabs (Marta voice, pt-PT)", back: "← Portfolio" },
+  twilio: { badge: "Telephony · Twilio", title: "Twilio", titleHighlight: "ConversationRelay", descBefore: "This demo uses", descBold: "Twilio ConversationRelay", descAfter: "for real phone calls.", powered: "Twilio ConversationRelay · Claude · ElevenLabs", back: "← Portfolio", phoneSoon: "Number coming soon", phoneLabel: "Or call:" },
   widgets: {
     common: {
       connecting: "Connecting…",
