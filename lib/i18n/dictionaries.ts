@@ -6,6 +6,9 @@ export type Dict = {
     hume: string;
     livekit: string;
     elevenlabs: string;
+    vapi: string;
+    retell: string;
+    twilio: string;
     /** Code of the *other* language, shown on the toggle button. */
     langToggleLabel: string;
   };
@@ -20,6 +23,9 @@ export type Dict = {
       hume: { badge: string; title: string; description: string; powered: string };
       livekit: { badge: string; title: string; description: string; powered: string };
       elevenlabs: { badge: string; title: string; description: string; powered: string };
+      vapi: { badge: string; title: string; description: string; powered: string };
+      retell: { badge: string; title: string; description: string; powered: string };
+      twilio: { badge: string; title: string; description: string; powered: string };
     };
   };
   hume: {
@@ -52,6 +58,22 @@ export type Dict = {
     descAfter: string;
     powered: string;
     back: string;
+  };
+  vapi: {
+    badge: string; title: string; titleHighlight: string;
+    descBefore: string; descBold: string; descAfter: string;
+    powered: string; back: string;
+  };
+  retell: {
+    badge: string; title: string; titleHighlight: string;
+    descBefore: string; descBold: string; descAfter: string;
+    powered: string; back: string;
+  };
+  twilio: {
+    badge: string; title: string; titleHighlight: string;
+    descBefore: string; descBold: string; descAfter: string;
+    powered: string; back: string;
+    phoneSoon: string; phoneLabel: string;
   };
   widgets: {
     common: {
@@ -94,6 +116,9 @@ export type Dict = {
       inputPlaceholderDisabled: string;
       send: string;
     };
+    vapi: { callButton: string; ending: string; listening: string; unavailable: string };
+    retell: { callButton: string; ending: string; listening: string; unavailable: string };
+    twilio: { callButton: string; ending: string; listening: string; unavailable: string };
     callMe: {
       heading: string;
       description: string;
@@ -126,6 +151,9 @@ const pt: Dict = {
     hume: "Hume EVI",
     livekit: "Gemini Live",
     elevenlabs: "ElevenLabs",
+    vapi: "Vapi",
+    retell: "Retell",
+    twilio: "Twilio",
     langToggleLabel: "EN",
   },
   gallery: {
@@ -153,6 +181,24 @@ const pt: Dict = {
         title: "ElevenLabs Conversational AI",
         description: "Pipeline STT+LLM+TTS, voz pt-PT, ecossistema ElevenLabs.",
         powered: "ElevenLabs ConvAI · Voz pt-PT",
+      },
+      vapi: {
+        badge: "Pipeline · Vapi",
+        title: "Vapi",
+        description: "Orquestrador de voz no browser — Claude a pensar, voz portuguesa da ElevenLabs a falar.",
+        powered: "Vapi · Claude Sonnet 4 · ElevenLabs",
+      },
+      retell: {
+        badge: "Pipeline · Retell",
+        title: "Retell AI",
+        description: "Outro orquestrador de pipeline no browser, para comparar fluxo e latência.",
+        powered: "Retell · Gemini · ElevenLabs",
+      },
+      twilio: {
+        badge: "Telefonia · Twilio",
+        title: "Twilio",
+        description: "ConversationRelay nativo — a Ana atende e liga por telefone a sério.",
+        powered: "Twilio ConversationRelay · Claude · ElevenLabs",
       },
     },
   },
@@ -189,6 +235,22 @@ const pt: Dict = {
       "— pipeline STT+LLM+TTS com voz nativa pt-PT, ideal para quem já usa o ecossistema ElevenLabs.",
     powered: "Tecnologia: ElevenLabs ConvAI · Voz pt-PT",
     back: "← Portfólio",
+  },
+  vapi: {
+    badge: "Pipeline · Vapi", title: "FALA COM A", titleHighlight: "ANA",
+    descBefore: "Esta demo usa o", descBold: "Vapi", descAfter: "a orquestrar Claude e voz portuguesa em tempo real.",
+    powered: "Vapi · Claude Sonnet 4 · ElevenLabs (voz Marta, pt-PT)", back: "← Portfólio",
+  },
+  retell: {
+    badge: "Pipeline · Retell", title: "FALA COM A", titleHighlight: "ANA",
+    descBefore: "Esta demo usa o", descBold: "Retell AI", descAfter: "para comparar outro orquestrador de pipeline.",
+    powered: "Retell · Gemini · ElevenLabs (voz Marta, pt-PT)", back: "← Portfólio",
+  },
+  twilio: {
+    badge: "Telefonia · Twilio", title: "LIGA À", titleHighlight: "ANA",
+    descBefore: "Esta demo usa o", descBold: "Twilio ConversationRelay", descAfter: "para chamadas de telefone reais.",
+    powered: "Twilio ConversationRelay · Claude · ElevenLabs", back: "← Portfólio",
+    phoneSoon: "Número em breve", phoneLabel: "Ou liga para:",
   },
   widgets: {
     common: {
@@ -231,6 +293,9 @@ const pt: Dict = {
       inputPlaceholderDisabled: "Liga primeiro para escrever à Ana",
       send: "Enviar",
     },
+    vapi: { callButton: "Falar com a Ana", ending: "A terminar…", listening: "A Ana está a ouvir…", unavailable: "Indisponível — em breve" },
+    retell: { callButton: "Falar com a Ana", ending: "A terminar…", listening: "A Ana está a ouvir…", unavailable: "Indisponível — em breve" },
+    twilio: { callButton: "Ligar à Ana", ending: "A terminar…", listening: "A Ana está a ouvir…", unavailable: "Indisponível — em breve" },
     callMe: {
       heading: "Preferes receber a chamada?",
       description: "Indica o teu número e a Ana liga-te em segundos.",
@@ -263,6 +328,9 @@ const en: Dict = {
     hume: "Hume EVI",
     livekit: "Gemini Live",
     elevenlabs: "ElevenLabs",
+    vapi: "Vapi",
+    retell: "Retell",
+    twilio: "Twilio",
     langToggleLabel: "PT",
   },
   gallery: {
@@ -291,6 +359,9 @@ const en: Dict = {
         description: "STT+LLM+TTS pipeline, pt-PT voice, ElevenLabs ecosystem.",
         powered: "ElevenLabs ConvAI · pt-PT voice",
       },
+      vapi: { badge: "Pipeline · Vapi", title: "Vapi", description: "Browser voice orchestrator — Claude thinking, ElevenLabs Portuguese voice speaking.", powered: "Vapi · Claude Sonnet 4 · ElevenLabs" },
+      retell: { badge: "Pipeline · Retell", title: "Retell AI", description: "Another browser pipeline orchestrator, to compare flow and latency.", powered: "Retell · Gemini · ElevenLabs" },
+      twilio: { badge: "Telephony · Twilio", title: "Twilio", description: "Native ConversationRelay — Ana answers and dials over a real phone line.", powered: "Twilio ConversationRelay · Claude · ElevenLabs" },
     },
   },
   hume: {
@@ -327,6 +398,9 @@ const en: Dict = {
     powered: "Powered by ElevenLabs ConvAI · pt-PT voice",
     back: "← Portfolio",
   },
+  vapi: { badge: "Pipeline · Vapi", title: "TALK TO", titleHighlight: "ANA", descBefore: "This demo uses", descBold: "Vapi", descAfter: "to orchestrate Claude and a Portuguese voice in real time.", powered: "Vapi · Claude Sonnet 4 · ElevenLabs (Marta voice, pt-PT)", back: "← Portfolio" },
+  retell: { badge: "Pipeline · Retell", title: "TALK TO", titleHighlight: "ANA", descBefore: "This demo uses", descBold: "Retell AI", descAfter: "to compare another pipeline orchestrator.", powered: "Retell · Gemini · ElevenLabs (Marta voice, pt-PT)", back: "← Portfolio" },
+  twilio: { badge: "Telephony · Twilio", title: "CALL", titleHighlight: "ANA", descBefore: "This demo uses", descBold: "Twilio ConversationRelay", descAfter: "for real phone calls.", powered: "Twilio ConversationRelay · Claude · ElevenLabs", back: "← Portfolio", phoneSoon: "Number coming soon", phoneLabel: "Or call:" },
   widgets: {
     common: {
       connecting: "Connecting…",
@@ -368,6 +442,9 @@ const en: Dict = {
       inputPlaceholderDisabled: "Connect first to chat with Ana",
       send: "Send",
     },
+    vapi: { callButton: "Talk to Ana", ending: "Ending…", listening: "Ana is listening…", unavailable: "Unavailable — coming soon" },
+    retell: { callButton: "Talk to Ana", ending: "Ending…", listening: "Ana is listening…", unavailable: "Unavailable — coming soon" },
+    twilio: { callButton: "Call Ana", ending: "Ending…", listening: "Ana is listening…", unavailable: "Unavailable — coming soon" },
     callMe: {
       heading: "Prefer to receive the call?",
       description: "Enter your number and Ana will call you in seconds.",
