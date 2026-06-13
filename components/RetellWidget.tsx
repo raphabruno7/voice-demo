@@ -25,6 +25,8 @@ export default function RetellWidget({ dict }: { dict: RetellDict }) {
     client.on("agent_stop_talking", () => setIsSpeaking(false));
     client.on("update", (u: RetellUpdate) => {
       if (!u.transcript?.length) return;
+      // Retell sends the full cumulative transcript on each update, so we replace
+      // (unlike VapiWidget, which appends per-utterance final transcripts).
       setTranscript(u.transcript.map((t) => ({ role: t.role === "user" ? "user" : "agent", text: t.content })));
     });
     return () => { client.stopCall(); };
