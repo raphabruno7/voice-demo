@@ -14,6 +14,9 @@ export default function AgentNav({ lang, dict }: { lang: Lang; dict: Dict["nav"]
     { label: dict.hume, href: "/hume" },
     { label: dict.livekit, href: "/livekit" },
     { label: dict.elevenlabs, href: "/elevenlabs" },
+    { label: dict.vapi, href: "/vapi" },
+    { label: dict.retell, href: "/retell" },
+    { label: dict.twilio, href: "/twilio" },
   ];
 
   return (

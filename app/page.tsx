@@ -30,6 +30,21 @@ const colorClasses: Record<
     button: "bg-amber-500 text-zinc-950 hover:bg-amber-400",
     badge: "border-amber-500/40 text-amber-400 bg-amber-500/10",
   },
+  sky: {
+    border: "border-sky-500/20", bg: "bg-sky-500/5", text: "text-sky-400",
+    button: "bg-sky-500 text-zinc-950 hover:bg-sky-400",
+    badge: "border-sky-500/40 text-sky-400 bg-sky-500/10",
+  },
+  fuchsia: {
+    border: "border-fuchsia-500/20", bg: "bg-fuchsia-500/5", text: "text-fuchsia-400",
+    button: "bg-fuchsia-500 text-zinc-950 hover:bg-fuchsia-400",
+    badge: "border-fuchsia-500/40 text-fuchsia-400 bg-fuchsia-500/10",
+  },
+  rose: {
+    border: "border-rose-500/20", bg: "bg-rose-500/5", text: "text-rose-400",
+    button: "bg-rose-500 text-zinc-950 hover:bg-rose-400",
+    badge: "border-rose-500/40 text-rose-400 bg-rose-500/10",
+  },
 };
 
 export default async function PortfolioPage() {
@@ -40,6 +55,9 @@ export default async function PortfolioPage() {
     { href: "/hume", color: "emerald", ...dict.gallery.stacks.hume },
     { href: "/livekit", color: "violet", ...dict.gallery.stacks.livekit },
     { href: "/elevenlabs", color: "amber", ...dict.gallery.stacks.elevenlabs },
+    { href: "/vapi", color: "sky", ...dict.gallery.stacks.vapi },
+    { href: "/retell", color: "fuchsia", ...dict.gallery.stacks.retell },
+    { href: "/twilio", color: "rose", ...dict.gallery.stacks.twilio },
   ];
 
   return (
@@ -70,7 +88,7 @@ export default async function PortfolioPage() {
           {dict.gallery.introAfter}
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-10">
           {stacks.map((stack) => {
             const c = colorClasses[stack.color];
             return (
