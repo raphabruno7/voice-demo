@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { RetellWebClient } from "retell-client-js-sdk";
 import type { Dict } from "@/lib/i18n/dictionaries";
+import { BASE_PATH } from "@/lib/base-path";
 
 type CallState = "idle" | "connecting" | "active" | "ending";
 type TranscriptEntry = { role: "user" | "agent"; text: string };
@@ -41,7 +42,7 @@ export default function RetellWidget({ dict }: { dict: RetellDict }) {
     if (state === "idle") {
       setState("connecting"); setTranscript([]);
       try {
-        const res = await fetch("/api/retell/web-call", { method: "POST" });
+        const res = await fetch(`${BASE_PATH}/api/retell/web-call`, { method: "POST" });
         if (!res.ok) { setAvailable(false); setState("idle"); return; }
         const { accessToken } = await res.json();
         await client.startCall({ accessToken });

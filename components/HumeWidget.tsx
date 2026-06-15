@@ -9,6 +9,7 @@ import {
   type UserTranscriptMessage,
 } from "@humeai/voice-react";
 import type { Dict } from "@/lib/i18n/dictionaries";
+import { BASE_PATH } from "@/lib/base-path";
 
 type HumeDict = {
   common: Dict["widgets"]["common"];
@@ -49,7 +50,7 @@ function log(...args: unknown[]) {
 
 async function fetchToken(): Promise<string | null> {
   try {
-    const r = await fetch("/api/hume/access-token", { method: "POST" });
+    const r = await fetch(`${BASE_PATH}/api/hume/access-token`, { method: "POST" });
     if (!r.ok) {
       const body = await r.text();
       console.error("[HumeWidget] token fetch failed", r.status, body);

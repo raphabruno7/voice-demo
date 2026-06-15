@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Device } from "@twilio/voice-sdk";
 import type { Dict } from "@/lib/i18n/dictionaries";
+import { BASE_PATH } from "@/lib/base-path";
 
 type CallState = "idle" | "connecting" | "active" | "ending";
 type TwilioDict = { common: Dict["widgets"]["common"]; twilio: Dict["widgets"]["twilio"] };
@@ -26,7 +27,7 @@ export default function TwilioWidget({ dict }: { dict: TwilioDict }) {
     if (state !== "idle") return;
     setState("connecting");
     try {
-      const res = await fetch("/api/twilio/token", { method: "POST" });
+      const res = await fetch(`${BASE_PATH}/api/twilio/token`, { method: "POST" });
       if (!res.ok) { setAvailable(false); setState("idle"); return; }
       const { token } = await res.json();
       const device = new Device(token);
