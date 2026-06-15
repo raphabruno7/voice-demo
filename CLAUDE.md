@@ -28,7 +28,7 @@ Live voice AI agent (white-label — apresentado publicamente como «24/7 Voice 
 | **Hume EVI 4-mini** | ✅ Activo | pt-PT nativo, prosódia adaptativa | `/` |
 | **LiveKit + Gemini Live** | ✅ Activo (browser) | Melhor fluxo de conversa, multilíngue, candidato a telefone | `/livekit` |
 | **ElevenLabs ConvAI** | ✅ Activo | pt-PT (voz Marta), EN, ES, FR, DE | `/elevenlabs` |
-| **Vapi** | 🟡 Indisponível (sem keys) | Browser voice orchestrator — Claude + ElevenLabs Marta | `/vapi` |
+| **Vapi** | ✅ Activo | Browser voice orchestrator — Gemini 2.5 Flash + ElevenLabs (Sarah) | `/vapi` |
 | **Retell AI** | 🟡 Indisponível (sem keys) | Pipeline alternativo — Gemini/Claude + ElevenLabs Marta | `/retell` |
 | **Twilio ConversationRelay** | 🟡 Número em breve | Telefonia real — PSTN + relay Claude standalone | `/twilio` |
 
@@ -57,7 +57,7 @@ Três páginas extra no portfolio, lado a lado com Hume/LiveKit/ElevenLabs na ga
 
 | Página | Provedor | Pipeline | Voz |
 |---|---|---|---|
-| `/vapi` | Vapi | Orquestrador browser — Claude Sonnet 4 + ElevenLabs | Marta (pt-PT) |
+| `/vapi` | Vapi | Orquestrador browser — Gemini 2.5 Flash + ElevenLabs | Sarah (EN, multilingual) |
 | `/retell` | Retell AI | Outro orquestrador browser, para comparar fluxo/latência — LLM em aberto (Gemini por default) + ElevenLabs | Marta (pt-PT) |
 | `/twilio` | Twilio ConversationRelay | Telefonia real (PSTN) — relay standalone com Claude | ElevenLabs Marta via `ttsProvider` do ConversationRelay |
 
@@ -71,11 +71,13 @@ Três páginas extra no portfolio, lado a lado com Hume/LiveKit/ElevenLabs na ga
 
 Os três demos degradam graciosamente sem configuração: `/vapi` mostra `dict.widgets.vapi.unavailable` ("Indisponível — em breve") em build-time (guard `NEXT_PUBLIC_VAPI_*` ausente); `/retell` e `/twilio` mostram o mesmo tipo de aviso, mas só **depois** de uma tentativa de ligação falhada (ver nota de polish abaixo). Para activar cada um:
 
-- **Vapi** (`/vapi`):
-  - Preencher `NEXT_PUBLIC_VAPI_PUBLIC_KEY`, `NEXT_PUBLIC_VAPI_ASSISTANT_ID`, `VAPI_API_KEY`, `VAPI_WEBHOOK_SECRET` em `.env.local` + Vercel (Production e Development).
-  - Criar o assistant no dashboard Vapi: LLM Claude Sonnet 4, voz ElevenLabs Marta (`bBNhdwrIjl4fcVYiRbT2`), STT Deepgram pt.
-  - Adicionar tool `book_meeting` → `/api/vapi/book-meeting`, com `server.secret` = `VAPI_WEBHOOK_SECRET` (header `x-vapi-secret`).
-  - Registar `ELEVENLABS_API_KEY` como provider key na conta Vapi (para a voz Marta).
+- ✅ **Vapi** (`/vapi`) — feito (Junho 2026):
+  - Assistant existente "Riley" (`629e76a1-3565-48b8-a7e9-e94f67953bc1`, da iteração 1) reconfigurado via API em vez de criar um novo: nome → "24/7 Voice Agent", `model` → Google `gemini-2.5-flash` (temp 0.2, prompt = `vapi-agent/system-prompt.txt`), `transcriber` → Deepgram `pt`, `firstMessage` alinhado ao rebranding.
+  - **Desvio do spec original**: LLM ficou Gemini em vez de Claude Sonnet 4 (sem `ANTHROPIC_API_KEY`/credential Anthropic disponível; credential `google` registada na conta Vapi usando `GEMINI_API_KEY` já existente). Voz ficou `11labs`/`sarah` (premade, EN) em vez de "Marta" — a conta ElevenLabs está no plano Free e a API bloqueia vozes da Voice Library (`paid_plan_required`); decisão do Raphael foi não usar Marta no Vapi, qualquer voz EN gratuita serve.
+  - Tool `book_meeting` (`d84cbba2-11b7-4e84-89d3-5e55f9fda680`, já associado ao assistant) actualizado: `server.url` → `/api/vapi/book-meeting`, `server.secret` → novo `VAPI_WEBHOOK_SECRET`, schema com `callerPhone` adicionado.
+  - Env vars (`NEXT_PUBLIC_VAPI_PUBLIC_KEY`, `NEXT_PUBLIC_VAPI_ASSISTANT_ID`, `VAPI_API_KEY`, `VAPI_WEBHOOK_SECRET`) preenchidas em `.env.local` + Vercel (Production + Development).
+  - **Gap**: `NEXT_PUBLIC_*` só ficam inline no bundle num build novo via Git (CLI `vercel --prod` produziu deployment que dá 404 ao aliasar — não usar). O push deste commit dispara o build certo.
+  - Mesmo plano Free do ElevenLabs bloqueia a voz Marta para o **Twilio** ConversationRelay (`ttsProvider="ElevenLabs" voice="bBNhdwrIjl4fcVYiRbT2"`) — rever quando chegar a vez do Twilio.
 
 - **Retell** (`/retell`):
   - Preencher `RETELL_API_KEY`, `RETELL_AGENT_ID`, `RETELL_WEBHOOK_SECRET`.
@@ -221,13 +223,19 @@ Reutiliza `OUTBOUND_TRUNK_ID`, `TRANSFER_RING_TIMEOUT_S`, `TRANSFER_CALLER_ID_NA
 | `ELEVENLABS_AGENT_ID` | `/api/elevenlabs/signed-url` |
 | `ELEVENLABS_VOICE_ID` | (override de voz, opcional) |
 
+### Activas — Vapi (`/vapi`)
+| Variable | Where |
+|---|---|
+| `NEXT_PUBLIC_VAPI_PUBLIC_KEY` | `VapiWidget.tsx` — init do Web SDK (`new Vapi(publicKey)`) |
+| `NEXT_PUBLIC_VAPI_ASSISTANT_ID` | `VapiWidget.tsx` — `vapi.start(assistantId)` |
+| `VAPI_API_KEY` | Não usada em runtime pelas rotas — usada pontualmente via API REST para configurar assistant/tools |
+| `VAPI_WEBHOOK_SECRET` | `/api/vapi/book-meeting` e `/api/vapi/webhook` — auth header `x-vapi-secret` |
+
 ### Standby (outros provedores)
 | Variable | Where |
 |---|---|
-| `VAPI_WEBHOOK_SECRET` | Webhook auth header |
-| `VAPI_API_KEY` | Outbound call (`/api/call`) |
-| `VAPI_ASSISTANT_ID` | Outbound call payload |
-| `VAPI_PHONE_NUMBER_ID` | Outbound call payload |
+| `VAPI_ASSISTANT_ID` | Outbound call payload (legacy, `/api/call`) |
+| `VAPI_PHONE_NUMBER_ID` | Outbound call payload (legacy) |
 | `NEXT_PUBLIC_PHONE_NUMBER` | Número no landing page |
 | `XAI_API_KEY` | Grok Voice legacy (substituído por Gemini Live) |
 
