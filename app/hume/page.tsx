@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 import { Badge } from "@/components/ui/badge";
@@ -74,9 +75,9 @@ export default async function HumePage({
         </Suspense>
 
         <div className="mt-16 border-t border-white/10 pt-8 flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-zinc-500">
-          <a href="/" className="hover:text-zinc-300 transition-colors">
+          <Link href="/" className="hover:text-zinc-300 transition-colors">
             {dict.hume.back}
-          </a>
+          </Link>
           <span className="hidden sm:inline">·</span>
           <a
             href="mailto:work@raphaelbruno.dev"

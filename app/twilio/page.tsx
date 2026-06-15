@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import TwilioWidget from "@/components/TwilioWidget";
 import { getLang } from "@/lib/i18n/lang";
@@ -35,7 +36,7 @@ export default async function TwilioPage() {
         </p>
 
         <div className="mt-16 border-t border-white/10 pt-8 flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-zinc-500">
-          <a href="/" className="hover:text-zinc-300 transition-colors">{dict.twilio.back}</a>
+          <Link href="/" className="hover:text-zinc-300 transition-colors">{dict.twilio.back}</Link>
           <span className="hidden sm:inline">·</span>
           <a href="mailto:work@raphaelbruno.dev" className="hover:text-zinc-300 transition-colors">work@raphaelbruno.dev</a>
           <span className="hidden sm:inline">·</span>
