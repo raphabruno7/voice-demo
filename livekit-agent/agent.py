@@ -105,7 +105,7 @@ async def book_meeting(caller_name: str, start_time: str) -> str:
         r = await client.post(
             CALENDAR_URL,
             json={"callerName": caller_name, "startTime": start_time},
-            headers={"x-vapi-secret": CALENDAR_SECRET},
+            headers={"x-hume-secret": CALENDAR_SECRET},
             timeout=10,
         )
         data = r.json()
