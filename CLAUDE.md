@@ -311,7 +311,7 @@ Production URL: `voice-demo-navy.vercel.app`
 
 ## Hume EVI config (referência operacional)
 
-- **Config ID em produção:** `7fd9f653-21d8-42db-b3df-c287d5899ec2` (versão actual: 25)
+- **Config ID em produção:** `7fd9f653-21d8-42db-b3df-c287d5899ec2` (versão actual: 50)
 - **Dashboard:** `app.hume.ai/evi/configs/7fd9f653-21d8-42db-b3df-c287d5899ec2`
 - **EVI runtime:** **EVI 4-mini** (`evi_version: "4-mini"`) — lightweight multilingual, optimizado para velocidade e custo
 - **Voz:** "A Viajante de Alma" (Octave HUME_AI shared, ID `7e4077d4-3f17-4012-bab2-18fd53b0c173`) — pt-PT nativa
@@ -495,11 +495,15 @@ O agente identifica quem está a ligar e personaliza a conversa por chamada (nã
 ✅ **Feito (working tree, ainda por re-sync nos providers):** `lib/i18n/dictionaries.ts` (38 strings, PT+EN), `app/layout.tsx` (title), os **6 system prompts** (`hume/`, `elevenlabs-agent/`, `livekit-agent/` ×2, `vapi-agent/`, `retell-agent/`, `twilio-agent/`), greetings hardcoded (`livekit-agent/agent.py`, `twilio-agent/server.js`, `app/api/call/route.ts`), notas WhatsApp (`appointments/*`, `transfer-fallback`, `book-meeting.ts`), caller-ID default (`24/7 Voice Agent - Demo`), `lib/google-calendar.ts`.
 - **Intencionalmente mantido:** o identificador técnico `ana-agent` (LiveKit dispatch — mudar quebra `WorkerOptions`/`createDispatch`); o `callerName: 'Ana'` no teste Vapi (nome de cliente-exemplo); o voice-clone histórico «Ana» (`ab262199-…`).
 
-⏳ **Pendente — re-sync dos agentes live (os providers ainda dizem «Ana»):**
-1. **Hume** — `POST /v0/evi/configs/7fd9f653-…` com payload completo (ver «Hume EVI config») a partir do `hume/system-prompt.txt` actualizado + actualizar `event_messages.on_new_chat` (a saudação ainda diz «Sou a Ana»).
-2. **ElevenLabs** — `PATCH` ao agent `agent_9401krm0dzycem49zckkhg3e2pzy` com `elevenlabs-agent/system-prompt.txt`; opcionalmente renomear o agent no dashboard.
-3. **LiveKit** — reiniciar o worker (`pkill -9 -f agent.py` + relançar) para carregar os `.txt` novos.
+✅ **Re-sync dos agentes live concluído (Junho 2026):**
+1. **Hume** — config `7fd9f653-…` actualizada para a versão 50 (prompt + `event_messages.on_new_chat` sem «Ana»; nome do config → "24/7 Voice Agent - Hume EVI").
+2. **ElevenLabs** — agent `agent_9401krm0dzycem49zckkhg3e2pzy` actualizado via `PATCH` (`elevenlabs-agent/system-prompt.txt` + `first_message`); agent renomeado para "24/7 Voice Agent" no dashboard.
+3. **LiveKit** — worker reiniciado (`pkill -9 -f agent.py` + relançado), a carregar os `.txt` já correctos.
 4. (Vapi/Retell/Twilio ainda não estão live — apanham o prompt novo quando forem configurados.)
+
+**Bug encontrado e corrigido durante o re-sync (commit `873b9fd`):** `livekit-agent/agent.py` enviava `x-vapi-secret` para `/api/book-meeting`, mas essa rota só aceita `x-hume-secret`/`HUME_TOOL_SECRET` — a tool `book_meeting` chamada pelo agente Gemini Live (`/livekit`) devolvia sempre 401. Corrigido para enviar `x-hume-secret`. **Nota:** isto assume que o `WEBHOOK_SECRET` usado pelo processo local do `agent.py` tem o mesmo valor que `HUME_TOOL_SECRET` — não verificado end-to-end com uma chamada real ainda.
+
+**Outro gap encontrado (não corrigido, fora do âmbito da feature "Outbound" que está pendente do número +351):** `WEBHOOK_SECRET` não existe nas env vars de produção da Vercel, pelo que `/api/transfer-fallback` e `/api/appointments/*` (`x-vapi-secret`/`WEBHOOK_SECRET`) devolvem 401 em produção. Sem impacto imediato porque essas rotas só são chamadas pelas confirmações outbound, que ainda não estão activas.
 
 ### Geração de vídeo com IA (Veo) — capacidade descoberta
 
