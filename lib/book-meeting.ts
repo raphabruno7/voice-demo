@@ -24,7 +24,7 @@ export async function bookMeeting(args: BookMeetingArgs): Promise<BookMeetingRes
     // Await so the serverless fn doesn't terminate mid-flight; ~500ms cost.
     try {
       await sendWhatsApp(
-        `📅 Novo agendamento via Ana\n\nNome: ${args.callerName}\nTelefone: ${args.callerPhone}\nHora: ${meetingTime}`
+        `📅 Novo agendamento via agente de voz\n\nNome: ${args.callerName}\nTelefone: ${args.callerPhone}\nHora: ${meetingTime}`
       );
     } catch (e) {
       console.error('[bookMeeting] WhatsApp failed:', e);

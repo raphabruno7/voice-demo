@@ -1,4 +1,4 @@
-"""Lookup e registo de leads no Arcus CRM (Supabase REST), para o agente de voz "Ana"."""
+"""Lookup e registo de leads no Arcus CRM (Supabase REST), para o agente de voz 24/7."""
 import json
 import logging
 import os

@@ -24,7 +24,7 @@ wss.on("connection", (ws) => {
     try { msg = JSON.parse(raw.toString()); } catch { return; }
 
     if (msg.type === "setup") {
-      safeSend(ws, { type: "text", token: "Olá, fala a Ana. Como te posso ajudar?", last: true });
+      safeSend(ws, { type: "text", token: "Olá, fala o agente de voz. Como posso ajudar?", last: true });
       return;
     }
 

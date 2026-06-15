@@ -25,7 +25,7 @@ export async function createEvent({
   const start = new Date(startTime);
   const end = new Date(start.getTime() + 30 * 60 * 1000);
 
-  const descriptionParts = ['Booked via Ana voice AI agent (voice-demo)'];
+  const descriptionParts = ['Booked via 24/7 voice AI agent (voice-demo)'];
   if (callerPhone) descriptionParts.push(`Tel: ${callerPhone}`);
 
   const res = await calendar.events.insert({

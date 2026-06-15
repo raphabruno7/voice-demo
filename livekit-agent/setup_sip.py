@@ -63,7 +63,7 @@ async def main():
     # 2 — Create dispatch rule: new room per call → dispatch ana-agent
     dispatch_req = api.CreateSIPDispatchRuleRequest(
         dispatch_rule=api.SIPDispatchRuleInfo(
-            name="Ana inbound",
+            name="Voice agent inbound",
             trunk_ids=[trunk_id],
             rule=api.SIPDispatchRule(
                 dispatch_rule_individual=api.SIPDispatchRuleIndividual(
@@ -113,8 +113,8 @@ async def main():
     print()
     print("=== Branded caller ID (CNAM) ===")
     print("LiveKit sets the SIP From display-name to TRANSFER_CALLER_ID_NAME")
-    print("(default 'Ana - Voice Demo'), but whether Raphael's carrier shows it")
-    print("depends on CNAM passthrough. For a registered name (e.g. 'Ana - "
+    print("(default '24/7 Voice Agent - Demo'), but whether Raphael's carrier shows it")
+    print("depends on CNAM passthrough. For a registered name (e.g. '24/7 Voice Agent - "
           "Raphael Bruno'), register CNAM for the +351 number in the DIDWW "
           "dashboard under Numbers > CNAM / Caller ID.")
 

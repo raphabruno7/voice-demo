@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
       customer: { number: phoneNumber },
       assistantOverrides: {
         model: { provider: "groq", model: "llama-3.3-70b-versatile", temperature: 0.3, maxTokens: 150 },
-        firstMessage: "Olá, sou a Ana — uma demonstração real de um agente de IA criado por Raphael Bruno. Como posso ajudar?",
+        firstMessage: "Olá, sou um agente de voz — uma demonstração real de automação por IA criada por Raphael Bruno. Como posso ajudar?",
         firstMessageMode: "assistant-speaks-first",
         maxDurationSeconds: 240,
         backgroundSound: "off",

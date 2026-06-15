@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Ana — Voice AI Demo · Raphael Bruno",
+  title: "24/7 Voice Agent — Voice AI Demo · Raphael Bruno",
   description: "Talk to a live AI agent. Voice agent demo by Raphael Bruno, AI automation specialist.",
 };
 

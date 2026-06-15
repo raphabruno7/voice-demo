@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
 
   try {
     await sendWhatsApp(
-      `🔄 Marcação remarcada via Ana\n\nCliente: ${appointment.client_name || 'desconhecido'}\nTelefone: ${appointment.client_phone}\nNova hora: ${meetingTime}`
+      `🔄 Marcação remarcada via agente de voz\n\nCliente: ${appointment.client_name || 'desconhecido'}\nTelefone: ${appointment.client_phone}\nNova hora: ${meetingTime}`
     );
   } catch (e) {
     console.error('[/api/appointments/reschedule] WhatsApp failed:', e);

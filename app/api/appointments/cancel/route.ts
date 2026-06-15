@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 
   try {
     await sendWhatsApp(
-      `❌ Marcação cancelada via Ana\n\nCliente: ${appointment.client_name || 'desconhecido'}\nTelefone: ${appointment.client_phone}\nEra: ${formatPtDateTime(appointment.appointment_at)}\nMotivo: ${reason || 'não especificado'}`
+      `❌ Marcação cancelada via agente de voz\n\nCliente: ${appointment.client_name || 'desconhecido'}\nTelefone: ${appointment.client_phone}\nEra: ${formatPtDateTime(appointment.appointment_at)}\nMotivo: ${reason || 'não especificado'}`
     );
   } catch (e) {
     console.error('[/api/appointments/cancel] WhatsApp failed:', e);

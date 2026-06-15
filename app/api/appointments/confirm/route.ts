@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
 
   try {
     await sendWhatsApp(
-      `✅ Marcação confirmada via Ana\n\nCliente: ${appointment.client_name || 'desconhecido'}\nTelefone: ${appointment.client_phone}\nHora: ${formatPtDateTime(appointment.appointment_at)}`
+      `✅ Marcação confirmada via agente de voz\n\nCliente: ${appointment.client_name || 'desconhecido'}\nTelefone: ${appointment.client_phone}\nHora: ${formatPtDateTime(appointment.appointment_at)}`
     );
   } catch (e) {
     console.error('[/api/appointments/confirm] WhatsApp failed:', e);

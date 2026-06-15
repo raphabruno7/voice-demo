@@ -60,7 +60,7 @@ def _format_pt_datetime(iso: str) -> str:
 # falls back to a blind SIP REFER (no voicemail/no-answer detection).
 OUTBOUND_TRUNK_ID = os.environ.get("OUTBOUND_TRUNK_ID")
 TRANSFER_RING_TIMEOUT_S = int(os.environ.get("TRANSFER_RING_TIMEOUT_S", "20"))
-TRANSFER_CALLER_ID_NAME = os.environ.get("TRANSFER_CALLER_ID_NAME", "Ana - Voice Demo")
+TRANSFER_CALLER_ID_NAME = os.environ.get("TRANSFER_CALLER_ID_NAME", "24/7 Voice Agent - Demo")
 
 
 def _find_sip_participant(room: rtc.Room) -> rtc.RemoteParticipant | None:
@@ -72,7 +72,7 @@ def _find_sip_participant(room: rtc.Room) -> rtc.RemoteParticipant | None:
 
 async def _transfer_failed(caller_phone: str, reason: str) -> str:
     """Notify Raphael via WhatsApp that a transfer didn't go through, and return
-    the line Ana should say to the caller."""
+    the line the agent should say to the caller."""
     if TRANSFER_FALLBACK_URL:
         try:
             async with httpx.AsyncClient() as client:
@@ -348,7 +348,7 @@ async def entrypoint(ctx: JobContext):
                 await lkapi.aclose()
 
             # Raphael answered and is now in the room with the caller — both
-            # legs hear each other directly. Give Ana a moment to say goodbye
+            # legs hear each other directly. Give the agent a moment to say goodbye
             # before the agent steps out.
             logger.info("transfer_to_human: Raphael answered, agent leaving room")
 
@@ -357,7 +357,7 @@ async def entrypoint(ctx: JobContext):
                 ctx.shutdown(reason="warm transfer completed")
 
             asyncio.create_task(_delayed_shutdown())
-            return "Transferência concluída — o colega já está em linha. Despede-te brevemente, a Ana vai sair da chamada de seguida."
+            return "Transferência concluída — o colega já está em linha. Despede-te brevemente, o agente vai sair da chamada de seguida."
 
         # No outbound trunk configured yet — blind SIP REFER (no voicemail detection)
         try:
@@ -381,7 +381,7 @@ async def entrypoint(ctx: JobContext):
         )
         agent_tools = [confirm_appointment, reschedule_appointment, cancel_appointment, opt_out]
         greeting_instructions = (
-            "Diz exactamente: 'Boa tarde, fala a Ana, assistente virtual. É só uma chamada "
+            "Diz exactamente: 'Boa tarde, fala o agente de voz, assistente virtual. É só uma chamada "
             f"automática para confirmar a sua marcação de {appointment_time_pt}. "
             "Vai poder comparecer?' Depois espera pela resposta."
         )
@@ -396,12 +396,12 @@ async def entrypoint(ctx: JobContext):
         if state["lead_context"]:
             greeting_instructions = (
                 "Greet the caller warmly in European Portuguese, mentioning their business by name: "
-                f"'Olá! Daqui é a Ana, do Raphael Bruno. Falas da {state['lead_context']['name']}, certo?' "
+                f"'Olá! Daqui é o agente de voz do Raphael Bruno. Falas da {state['lead_context']['name']}, certo?' "
                 "Then wait for their response."
             )
         else:
             greeting_instructions = (
-                "Greet the caller warmly in European Portuguese: 'Olá! Sou a Ana, uma demonstração "
+                "Greet the caller warmly in European Portuguese: 'Olá! Sou um agente de voz, uma demonstração "
                 "ao vivo de um agente de IA criado por Raphael Bruno. Como posso ajudar?' "
                 "Then wait for their response."
             )

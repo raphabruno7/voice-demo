@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
 
   try {
     await sendWhatsApp(
-      `📞 Transferência falhou — chamada Ana\n\nTelefone: ${callerPhone || 'desconhecido'}\nMotivo: ${reason || 'não especificado'}\n\nPor favor, ligar de volta.`
+      `📞 Transferência falhou — chamada do agente\n\nTelefone: ${callerPhone || 'desconhecido'}\nMotivo: ${reason || 'não especificado'}\n\nPor favor, ligar de volta.`
     );
     return NextResponse.json({ success: true });
   } catch (e) {
