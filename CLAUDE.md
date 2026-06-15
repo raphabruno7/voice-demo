@@ -181,6 +181,7 @@ vercel.json                             # ✅ Vercel Cron — /api/cron/outbound
 | `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` | Google Calendar API auth (`/api/calendar`) |
 | `GOOGLE_CALENDAR_ID` | Target calendar |
 | `HUME_TOOL_SECRET` | Auth header `x-hume-secret` em `/api/book-meeting` |
+| `WEBHOOK_SECRET` | Auth header `x-vapi-secret` em `/api/transfer-fallback` e `/api/appointments/*` (mesmo valor de `HUME_TOOL_SECRET`) |
 | `TWILIO_ACCOUNT_SID` | Auth Twilio REST API (`/api/book-meeting`) |
 | `TWILIO_AUTH_TOKEN` | Auth Twilio REST API (`/api/book-meeting`) |
 | `TWILIO_WHATSAPP_TO` | Número destino notificações (`whatsapp:+351931822816`) |
@@ -503,7 +504,7 @@ O agente identifica quem está a ligar e personaliza a conversa por chamada (nã
 
 **Bug encontrado e corrigido durante o re-sync (commit `873b9fd`):** `livekit-agent/agent.py` enviava `x-vapi-secret` para `/api/book-meeting`, mas essa rota só aceita `x-hume-secret`/`HUME_TOOL_SECRET` — a tool `book_meeting` chamada pelo agente Gemini Live (`/livekit`) devolvia sempre 401. Corrigido para enviar `x-hume-secret`. **Nota:** isto assume que o `WEBHOOK_SECRET` usado pelo processo local do `agent.py` tem o mesmo valor que `HUME_TOOL_SECRET` — não verificado end-to-end com uma chamada real ainda.
 
-**Outro gap encontrado (não corrigido, fora do âmbito da feature "Outbound" que está pendente do número +351):** `WEBHOOK_SECRET` não existe nas env vars de produção da Vercel, pelo que `/api/transfer-fallback` e `/api/appointments/*` (`x-vapi-secret`/`WEBHOOK_SECRET`) devolvem 401 em produção. Sem impacto imediato porque essas rotas só são chamadas pelas confirmações outbound, que ainda não estão activas.
+**Gap corrigido (Junho 2026):** `WEBHOOK_SECRET` não existia nas env vars de produção da Vercel, pelo que `/api/transfer-fallback` e `/api/appointments/*` (`x-vapi-secret`/`WEBHOOK_SECRET`) devolviam 401. Adicionado a Production+Development com o mesmo valor de `HUME_TOOL_SECRET` (reutilização intencional, como já documentado) + redeploy. Verificado: 401 sem secret, 200 com secret correcto.
 
 ### Geração de vídeo com IA (Veo) — capacidade descoberta
 
