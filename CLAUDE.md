@@ -29,7 +29,7 @@ Live voice AI agent (white-label — apresentado publicamente como «24/7 Voice 
 | **LiveKit + Gemini Live** | ✅ Activo (browser) | Melhor fluxo de conversa, multilíngue, candidato a telefone | `/livekit` |
 | **ElevenLabs ConvAI** | ✅ Activo | pt-PT (voz Marta), EN, ES, FR, DE | `/elevenlabs` |
 | **Vapi** | ✅ Activo | Browser voice orchestrator — Gemini 2.5 Flash + ElevenLabs (Sarah) | `/vapi` |
-| **Retell AI** | 🟡 Indisponível (sem keys) | Pipeline alternativo — Gemini/Claude + ElevenLabs Marta | `/retell` |
+| **Retell AI** | ✅ Activo | Pipeline alternativo — Gemini 3.0 Flash + Cartesia Cleo | `/retell` |
 | **Twilio ConversationRelay** | 🟡 Número em breve | Telefonia real — PSTN + relay Claude standalone | `/twilio` |
 
 **Decisão por mercado (Maio 2026):**
@@ -58,7 +58,7 @@ Três páginas extra no portfolio, lado a lado com Hume/LiveKit/ElevenLabs na ga
 | Página | Provedor | Pipeline | Voz |
 |---|---|---|---|
 | `/vapi` | Vapi | Orquestrador browser — Gemini 2.5 Flash + ElevenLabs | Sarah (EN, multilingual) |
-| `/retell` | Retell AI | Outro orquestrador browser, para comparar fluxo/latência — LLM em aberto (Gemini por default) + ElevenLabs | Marta (pt-PT) |
+| `/retell` | Retell AI | Outro orquestrador browser, para comparar fluxo/latência — Gemini 3.0 Flash + Cartesia | Cleo (EN, low-latency) |
 | `/twilio` | Twilio ConversationRelay | Telefonia real (PSTN) — relay standalone com Claude | ElevenLabs Marta via `ttsProvider` do ConversationRelay |
 
 **Booking tool partilhado** — `lib/book-meeting.ts` (`bookMeeting()`) é agora o core de **todos** os tools de agendamento: `app/api/book-meeting/route.ts` (Hume/LiveKit, auth `x-hume-secret`), `app/api/vapi/book-meeting/route.ts` (auth `x-vapi-secret` == `VAPI_WEBHOOK_SECRET`, parseia `toolCallList`/`toolCalls`), `app/api/retell/book-meeting/route.ts` (auth `x-retell-secret` == `RETELL_WEBHOOK_SECRET`, lê `body.args`). Cada route só faz parsing/auth específicos do provedor e chama `bookMeeting({callerName, callerPhone, startTime})`, que cria o evento no Google Calendar e envia WhatsApp — uma única fonte de verdade para o efeito do agendamento.
@@ -79,10 +79,12 @@ Os três demos degradam graciosamente sem configuração: `/vapi` mostra `dict.w
   - **Gap**: `NEXT_PUBLIC_*` só ficam inline no bundle num build novo via Git (CLI `vercel --prod` produziu deployment que dá 404 ao aliasar — não usar). O push deste commit dispara o build certo.
   - Mesmo plano Free do ElevenLabs bloqueia a voz Marta para o **Twilio** ConversationRelay (`ttsProvider="ElevenLabs" voice="bBNhdwrIjl4fcVYiRbT2"`) — rever quando chegar a vez do Twilio.
 
-- **Retell** (`/retell`):
-  - Preencher `RETELL_API_KEY`, `RETELL_AGENT_ID`, `RETELL_WEBHOOK_SECRET`.
-  - Criar o agent no dashboard Retell: LLM em aberto (default Gemini — já há `GEMINI_API_KEY` no projecto), voz Marta, tool `book_meeting` → `/api/retell/book-meeting`.
-  - **Confirmar o payload real do custom function do Retell** — `app/api/retell/book-meeting/route.ts` lê `body.args`; ajustar se o Retell enviar outra forma.
+- ✅ **Retell** (`/retell`) — feito (Junho 2026):
+  - LLM criado via API: `llm_0cf88576856989e50d0f4c68a5e4`, Retell auto-upgradou `gemini-2.0-flash` → **Gemini 3.0 Flash**, prompt = `retell-agent/system-prompt.txt`.
+  - Agent criado: `agent_f732433c304ff6ea52185e3c7c`, voz **Cartesia Cleo** (EN, low-latency — nativa do Retell, sem BYOK; voz Marta bloqueada pelo ElevenLabs Free plan para API calls externos), `language: pt-PT`.
+  - Tool `book_meeting` associado ao LLM: webhook → `/api/retell/book-meeting`, header `x-retell-secret` = `RETELL_WEBHOOK_SECRET`, payload `body.args` (confirmado correcto com o route.ts existente).
+  - Env vars (`RETELL_API_KEY`, `RETELL_AGENT_ID`, `RETELL_WEBHOOK_SECRET`) em `.env.local` + Vercel Production + Development. Redeploy feito.
+  - Verificado: 401 sem header, 200 + fallback sem campos, `access_token` presente em `/api/retell/web-call`.
 
 - **Twilio** (`/twilio`):
   - Comprar um número Twilio (não-PT aceitável — mais barato e sem burocracia ANACOM para a demo).
