@@ -2,7 +2,7 @@
 
 # voice-demo
 
-Live voice AI agent (Ana) — portfolio demo de Raphael Bruno. Objectivo: state-of-the-art voice agent **multilíngue** com qualidade nativa por mercado. Stack contém **vários provedores em paralelo** — cada um optimizado para um caso de uso. Navegação entre agentes via `AgentNav` (top-right, todas as páginas).
+Live voice AI agent (white-label — apresentado publicamente como «24/7 Voice Agent» / «Agente de Voz 24/7»; «Ana» era a persona do negócio do Raphael e foi removida do material público em Junho 2026) — portfolio demo de Raphael Bruno. Objectivo: state-of-the-art voice agent **multilíngue** com qualidade nativa por mercado. Stack contém **vários provedores em paralelo** — cada um optimizado para um caso de uso. Navegação entre agentes via `AgentNav` (top-right, todas as páginas).
 
 ## Stack actual (Maio 2026)
 
@@ -140,8 +140,8 @@ livekit-agent/                          # Python agent — Gemini Live end-to-en
   arcus_lookup.py                       # ✅ Lookup/registo de leads no Arcus CRM (contexto dinâmico por chamada)
   niches.json                           # Cópia versionada de easy-leads-ai/niches.json (sync manual)
   test_arcus_lookup.py                  # Script manual: testar lookup_by_phone/by_name contra Arcus real
-  system-prompt.txt                     # Prompt Ana pt-PT (partilhado com Hume) — chamadas inbound/demo
-  system-prompt-confirmation.txt        # ✅ Prompt Ana pt-PT — chamadas outbound de confirmação/remarcação/cancelamento
+  system-prompt.txt                     # Prompt do agente pt-PT (partilhado com Hume) — chamadas inbound/demo
+  system-prompt-confirmation.txt        # ✅ Prompt do agente pt-PT — chamadas outbound de confirmação/remarcação/cancelamento
   requirements.txt                      # livekit-agents[google]>=0.12
   Dockerfile                            # Para Railway/deploy em produção
 supabase/migrations/
@@ -200,9 +200,9 @@ vercel.json                             # ✅ Vercel Cron — /api/cron/outbound
 | `ARCUS_ORG_ID` | Python agent (`arcus_lookup.py`) — default `c4669ad5-e6b2-41ed-9c51-c09dfbec17f9` |
 | `OUTBOUND_TRUNK_ID` | Python agent — trunk outbound LiveKit (criado por `setup_sip.py`). Sem ela, transfer cai para blind SIP REFER (sem deteção de voicemail) |
 | `TRANSFER_RING_TIMEOUT_S` | Python agent — segundos a tocar antes de considerar voicemail/sem resposta. Default `20` |
-| `TRANSFER_CALLER_ID_NAME` | Python agent — display name SIP mostrado ao Raphael na chamada de transfer. Default `Ana - Voice Demo` |
+| `TRANSFER_CALLER_ID_NAME` | Python agent — display name SIP mostrado ao Raphael na chamada de transfer. Default `24/7 Voice Agent - Demo` |
 
-### Activas — Outbound confirmation calls ("Ana liga-te")
+### Activas — Outbound confirmation calls ("Agente liga-te")
 | Variable | Where | Default |
 |---|---|---|
 | `CRON_SECRET` | `/api/cron/outbound-calls` — valida `Authorization: Bearer ${CRON_SECRET}` enviado pelo Vercel Cron | ✅ definido em Vercel Production (Junho 2026) |
@@ -261,7 +261,7 @@ PYTHONUNBUFFERED=1 \
   ./venv/bin/python -u agent.py dev
 ```
 
-`OUTBOUND_TRUNK_ID` é opcional — sem ela, `transfer_to_human` usa blind SIP REFER (sem deteção de voicemail). `TRANSFER_RING_TIMEOUT_S` (default 20) e `TRANSFER_CALLER_ID_NAME` (default "Ana - Voice Demo") também são opcionais.
+`OUTBOUND_TRUNK_ID` é opcional — sem ela, `transfer_to_human` usa blind SIP REFER (sem deteção de voicemail). `TRANSFER_RING_TIMEOUT_S` (default 20) e `TRANSFER_CALLER_ID_NAME` (default "24/7 Voice Agent - Demo") também são opcionais.
 
 **Atenção — modo `dev`:** reinicia automaticamente em alterações de ficheiro na pasta `livekit-agent/`. Se o worker ficar em loop de reconexão (`failed to connect to livekit` + `unexpected message type: 258`), matar com `pkill -9 -f agent.py` e reiniciar. Em produção usar Railway/systemd com auto-restart.
 
@@ -339,7 +339,7 @@ Production URL: `voice-demo-navy.vercel.app`
 ## Pendentes / decisões abertas
 
 - **Vercel env vars Hume** — ✅ adicionadas (HUME_API_KEY, HUME_SECRET_KEY, NEXT_PUBLIC_HUME_CONFIG_ID, HUME_TOOL_SECRET) em Production e Development.
-- **`book_meeting` tool** — ✅ implementado via server-side Hume tool. Tool ID: `b8427229-73d6-42d5-bf40-cf4cfbaac73a`. Endpoint: `/api/book-meeting` (auth: `HUME_TOOL_SECRET`). Recolhe nome + telefone + data/hora, cria evento no Google Calendar, devolve `meetingTime` em pt-PT para a Ana confirmar.
+- **`book_meeting` tool** — ✅ implementado via server-side Hume tool. Tool ID: `b8427229-73d6-42d5-bf40-cf4cfbaac73a`. Endpoint: `/api/book-meeting` (auth: `HUME_TOOL_SECRET`). Recolhe nome + telefone + data/hora, cria evento no Google Calendar, devolve `meetingTime` em pt-PT para o agente confirmar.
 - **Velocidade da voz** — ✅ resolvida via `[VOICE DIRECTION: ...]` no system prompt. "Very fast, clipped conversational pace". Não há lever runtime no SDK.
 - **Voice clone vs Octave shared** — ✅ decisão tomada: Octave shared "A Viajante de Alma". Clone perde em streaming; shared aguenta melhor.
 - **WhatsApp Twilio** — ✅ sandbox activo. Para produção real (sem sandbox) precisas de número Twilio com WhatsApp Business aprovado.
@@ -347,8 +347,8 @@ Production URL: `voice-demo-navy.vercel.app`
 - **Warm transfer (`transfer_to_human`)** — ✅ Implementado em `agent.py` (attended transfer com `wait_until_answered` + deteção de voicemail/no-answer via `ringing_timeout`, fallback blind REFER, fallback WhatsApp via `/api/transfer-fallback`). ⏳ **À espera de:** número +351 + `OUTBOUND_TRUNK_ID` (de `setup_sip.py`) para teste end-to-end real e confirmar comportamento da DIDWW com `create_sip_participant`/REFER.
 - **Concorrência** — ✅ `WorkerOptions` afinado (`num_idle_processes=2`, `load_threshold=0.75`) para chamadas concorrentes sem latência de arranque.
 - **Branded caller ID (CNAM)** — ✅ `setup_sip.py` aceita `DIDWW_OUTBOUND_ADDRESS` e cria outbound trunk; `TRANSFER_CALLER_ID_NAME` define o display name SIP. ⏳ **À espera de:** registo CNAM do número +351 no dashboard DIDWW (manual, após compra do número).
-- **Outbound confirmation calls ("Ana liga-te")** — ✅ Código completo (Junho 2026): migration `outbound_appointments`, `lib/google-calendar.ts` (`listUpcomingEvents`/`updateEventTime`/`cancelEvent`), `lib/livekit-outbound.ts` (`triggerOutboundCall`), cron `/api/cron/outbound-calls` (+ `vercel.json`), endpoints `/api/appointments/{confirm,reschedule,cancel,opt-out}`, branch em `agent.py` + `system-prompt-confirmation.txt`. Ver secção dedicada "Outbound — confirmação/remarcação/cancelamento de marcações" abaixo. `CRON_SECRET` ✅ já definido em Vercel Production. ⏳ **À espera de:** (1) número +351 + `OUTBOUND_TRUNK_ID` para teste SIP outbound real (mesmo caveat do warm transfer); (2) **decisão de negócio do Raphael por cada cliente (clínica/imobiliária)** sobre base legal GDPR e divulgação aos próprios clientes finais antes de activar chamadas automáticas em produção real — o código cumpre a divulgação de IA (Art. 50 AI Act) e o opt-out, mas a base legal/consentimento é responsabilidade do negócio que usa a Ana, não algo que o código resolve sozinho.
-- **ElevenLabs ConvAI (`/elevenlabs`)** — ✅ Completo (Junho 2026). Página + nav link + widget (voz + modo texto) activados, reaproveitando `/api/elevenlabs/signed-url` e `components/ElevenLabsWidget.tsx`. Agent `agent_9401krm0dzycem49zckkhg3e2pzy` ("Ana") configurado via API: prompt `elevenlabs-agent/system-prompt.txt` (pt-PT, registo Lisboa), tool `book_meeting` (`tool_8401kty2hv38fkjrs9rtbdy5c8ge`, webhook → `/api/book-meeting`, mesmo `HUME_TOOL_SECRET`). Voz: `bBNhdwrIjl4fcVYiRbT2`, LLM `claude-sonnet-4`. `ELEVENLABS_API_KEY`/`ELEVENLABS_AGENT_ID` em `.env.local` + Vercel (Production/Development). ⏳ **À espera de:** validar em streaming real a qualidade da voz pt-PT — caveat conhecido: pipeline STT+LLM+TTS (não end-to-end), pode soar diferente do Playground.
+- **Outbound confirmation calls ("Agente liga-te")** — ✅ Código completo (Junho 2026): migration `outbound_appointments`, `lib/google-calendar.ts` (`listUpcomingEvents`/`updateEventTime`/`cancelEvent`), `lib/livekit-outbound.ts` (`triggerOutboundCall`), cron `/api/cron/outbound-calls` (+ `vercel.json`), endpoints `/api/appointments/{confirm,reschedule,cancel,opt-out}`, branch em `agent.py` + `system-prompt-confirmation.txt`. Ver secção dedicada "Outbound — confirmação/remarcação/cancelamento de marcações" abaixo. `CRON_SECRET` ✅ já definido em Vercel Production. ⏳ **À espera de:** (1) número +351 + `OUTBOUND_TRUNK_ID` para teste SIP outbound real (mesmo caveat do warm transfer); (2) **decisão de negócio do Raphael por cada cliente (clínica/imobiliária)** sobre base legal GDPR e divulgação aos próprios clientes finais antes de activar chamadas automáticas em produção real — o código cumpre a divulgação de IA (Art. 50 AI Act) e o opt-out, mas a base legal/consentimento é responsabilidade do negócio que usa o agente, não algo que o código resolve sozinho.
+- **ElevenLabs ConvAI (`/elevenlabs`)** — ✅ Completo (Junho 2026). Página + nav link + widget (voz + modo texto) activados, reaproveitando `/api/elevenlabs/signed-url` e `components/ElevenLabsWidget.tsx`. Agent `agent_9401krm0dzycem49zckkhg3e2pzy` (nome interno no dashboard ainda "Ana" — re-sync pendente) configurado via API: prompt `elevenlabs-agent/system-prompt.txt` (pt-PT, registo Lisboa), tool `book_meeting` (`tool_8401kty2hv38fkjrs9rtbdy5c8ge`, webhook → `/api/book-meeting`, mesmo `HUME_TOOL_SECRET`). Voz: `bBNhdwrIjl4fcVYiRbT2`, LLM `claude-sonnet-4`. `ELEVENLABS_API_KEY`/`ELEVENLABS_AGENT_ID` em `.env.local` + Vercel (Production/Development). ⏳ **À espera de:** validar em streaming real a qualidade da voz pt-PT — caveat conhecido: pipeline STT+LLM+TTS (não end-to-end), pode soar diferente do Playground.
 
 ## Gemini Live — referência operacional
 
@@ -372,12 +372,12 @@ Production URL: `voice-demo-navy.vercel.app`
 
 - **Tool:** `transfer_to_human(reason)` em `agent.py`, definida como closure dentro de `entrypoint` (precisa de `ctx`).
 - **Modo attended (com `OUTBOUND_TRUNK_ID` definido) — recomendado:**
-  - A Ana fica na chamada e disca para `TRANSFER_TO_NUMBER` via `lkapi.sip.create_sip_participant(..., wait_until_answered=True, ringing_timeout=TRANSFER_RING_TIMEOUT_S)`.
-  - **Se o Raphael atender:** entra na mesma room que o chamador (ambos os SIP legs ouvem-se directamente via mix da room). A Ana diz uma frase breve de despedida e sai (`ctx.shutdown()`, com 4s de atraso para não cortar a fala).
-  - **Se não atender (voicemail / timeout / ocupado):** `create_sip_participant` lança `TwirpError` — a Ana **nunca chega a tocar no leg do chamador**, cai directo no fallback WhatsApp.
-  - **Caller ID:** `display_name=TRANSFER_CALLER_ID_NAME` (default "Ana - Voice Demo") no SIP `From`. Passthrough do nome depende do CNAM da DIDWW (ver secção SIP Trunk abaixo).
+  - O agente fica na chamada e disca para `TRANSFER_TO_NUMBER` via `lkapi.sip.create_sip_participant(..., wait_until_answered=True, ringing_timeout=TRANSFER_RING_TIMEOUT_S)`.
+  - **Se o Raphael atender:** entra na mesma room que o chamador (ambos os SIP legs ouvem-se directamente via mix da room). O agente diz uma frase breve de despedida e sai (`ctx.shutdown()`, com 4s de atraso para não cortar a fala).
+  - **Se não atender (voicemail / timeout / ocupado):** `create_sip_participant` lança `TwirpError` — o agente **nunca chega a tocar no leg do chamador**, cai directo no fallback WhatsApp.
+  - **Caller ID:** `display_name=TRANSFER_CALLER_ID_NAME` (default "24/7 Voice Agent - Demo") no SIP `From`. Passthrough do nome depende do CNAM da DIDWW (ver secção SIP Trunk abaixo).
 - **Modo blind (sem `OUTBOUND_TRUNK_ID`):** fallback para `ctx.transfer_sip_participant(participant, TRANSFER_TO_NUMBER, play_dialtone=True)` (SIP REFER directo, sem deteção de voicemail/no-answer).
-- **Sessões de browser (sem SIP):** a tool devolve mensagem indicando que não é chamada telefónica; a Ana continua a conversa sem mencionar a tentativa.
+- **Sessões de browser (sem SIP):** a tool devolve mensagem indicando que não é chamada telefónica; o agente continua a conversa sem mencionar a tentativa.
 - **Fallback WhatsApp:** em qualquer caso de falha (voicemail, erro técnico, REFER falhou), POST para `TRANSFER_FALLBACK_ENDPOINT` (`/api/transfer-fallback`) com `callerPhone` + `reason`.
 - **Pendente de validação real:** todo o fluxo (attended + blind) só é testável com chamada SIP real, após a compra do número +351 (ver "Pendentes" abaixo).
 
@@ -413,11 +413,11 @@ Production URL: `voice-demo-navy.vercel.app`
   - Se `DIDWW_OUTBOUND_ADDRESS` definido, cria `SIPOutboundTrunk` — o `sip_trunk_id` resultante vai para `OUTBOUND_TRUNK_ID` no deploy do agent (activa attended transfer)
 - **DIDWW SIP destination** (configurar em DIDWW dashboard): `voice-agent-hfi9y0b7.sip.livekit.cloud:5060`
 - **Permitida lista IPs DIDWW:** `46.19.209.14/32`, `46.19.210.14/32`, `46.19.212.14/32`, `46.19.213.14/32`, `46.19.214.14/32`, `46.19.215.14/32`, `185.238.173.14/32`
-- **Branded caller ID (CNAM):** registar nome (ex: "Ana - Raphael Bruno") para o número +351 em DIDWW dashboard → Numbers → CNAM/Caller ID. Sem registo, `TRANSFER_CALLER_ID_NAME` pode não aparecer no telefone do Raphael (depende de passthrough da operadora).
+- **Branded caller ID (CNAM):** registar nome (ex: "24/7 Voice Agent - Raphael Bruno") para o número +351 em DIDWW dashboard → Numbers → CNAM/Caller ID. Sem registo, `TRANSFER_CALLER_ID_NAME` pode não aparecer no telefone do Raphael (depende de passthrough da operadora).
 
-## Outbound — confirmação/remarcação/cancelamento de marcações ("Ana liga-te")
+## Outbound — confirmação/remarcação/cancelamento de marcações ("Agente liga-te")
 
-**Objectivo:** a Ana liga proactivamente a clientes de clínicas/imobiliárias para confirmar a marcação do dia seguinte, reduzindo no-shows sem trabalho manual da recepção. Cliente pode confirmar, pedir para remarcar, cancelar, ou pedir para não receber mais chamadas (opt-out). **Estado: código completo, `CRON_SECRET` já configurado, à espera do número +351 (`OUTBOUND_TRUNK_ID`) para activação real** — mesmo padrão "pronto, à espera do número" do warm transfer.
+**Objectivo:** o agente liga proactivamente a clientes de clínicas/imobiliárias para confirmar a marcação do dia seguinte, reduzindo no-shows sem trabalho manual da recepção. Cliente pode confirmar, pedir para remarcar, cancelar, ou pedir para não receber mais chamadas (opt-out). **Estado: código completo, `CRON_SECRET` já configurado, à espera do número +351 (`OUTBOUND_TRUNK_ID`) para activação real** — mesmo padrão "pronto, à espera do número" do warm transfer.
 
 ### Fluxo end-to-end
 
@@ -437,7 +437,7 @@ Production URL: `voice-demo-navy.vercel.app`
 
 3. **Python agent (`livekit-agent/agent.py`):**
    - `entrypoint` lê `ctx.job.metadata` (JSON). Se `callType == "confirmation"`, usa `CONFIRMATION_PROMPT_TEMPLATE` (`system-prompt-confirmation.txt`) com placeholders `{client_name}`/`{appointment_time}`/`{business_type}` substituídos, e regista os tools `confirm_appointment`, `reschedule_appointment`, `cancel_appointment`, `opt_out` (em vez de `book_meeting`/`transfer_to_human`).
-   - Saudação obrigatória inclui divulgação de IA + chamada automática (EU AI Act Art. 50): "Boa tarde, fala a Ana, assistente virtual. É só uma chamada automática para confirmar a sua marcação de [dia/hora]. Vai poder comparecer?"
+   - Saudação obrigatória inclui divulgação de IA + chamada automática (EU AI Act Art. 50): "Boa tarde, fala o agente de voz, assistente virtual. É só uma chamada automática para confirmar a sua marcação de [dia/hora]. Vai poder comparecer?"
    - `_format_pt_datetime` formata o ISO datetime em pt-PT ("terça-feira, 16 de junho, às 15:00").
 
 4. **Tools do agente → endpoints (`app/api/appointments/*`, auth `x-vapi-secret == WEBHOOK_SECRET`, sempre devolvem 200):**
@@ -458,13 +458,13 @@ Production URL: `voice-demo-navy.vercel.app`
 
 ## Contexto dinâmico do lead (Arcus CRM) — Junho 2026
 
-A Ana identifica quem está a ligar e personaliza a conversa por chamada (não há um agente/número por lead — é sempre o mesmo `ana-agent`, com contexto injectado dinamicamente).
+O agente identifica quem está a ligar e personaliza a conversa por chamada (não há um agente/número por lead — é sempre o mesmo `ana-agent`, com contexto injectado dinamicamente).
 
 - **`arcus_lookup.py`** — todas as chamadas ao Arcus CRM (Supabase REST, tabela `contacts`/`activities`, `org_id` partilhado com `prospeccao-ativa`):
   - `lookup_by_phone(phone)` / `lookup_by_company_name(name)` — resolução do lead.
   - `build_lead_context(contact)` → `{contact_id, name, niche_label, pain}` (sem `notes` cru — regra de privacidade).
   - `render_lead_context_block(lead_context)` → bloco `=== CONTEXTO DO LEAD ===` injectado no `SYSTEM_PROMPT`.
-  - `UNIDENTIFIED_LEAD_INSTRUCTIONS` — instruções para a Ana perguntar o nome do negócio quando não há match.
+  - `UNIDENTIFIED_LEAD_INSTRUCTIONS` — instruções para o agente perguntar o nome do negócio quando não há match.
   - `update_contact_after_voice_call` / `log_voice_interaction` — regista o outcome da chamada em `activities` + tags no contact.
   - `pain_for_tags` lê `niches.json` (cópia local) para mapear tag `peniche_*` → `pain_one_liner_pt`.
 
@@ -472,17 +472,55 @@ A Ana identifica quem está a ligar e personaliza a conversa por chamada (não h
   - `_resolve_lead_context(ctx)` — corre logo após `ctx.connect()`. Em chamada SIP, usa `sip.phoneNumber` do participante; em modo browser, lê `room.metadata` (`{"leadPhone": "+351..."}`).
   - `instructions` final = `SYSTEM_PROMPT` + bloco de contexto do lead (ou `UNIDENTIFIED_LEAD_INSTRUCTIONS`).
   - Tool **`lookup_lead_by_name(business_name)`** — fallback quando o lead não foi identificado pelo telefone; se encontrar, chama `agent.update_instructions(...)` para re-injectar o contexto a meio da chamada.
-  - Tool **`wrap_up_call(intent, summary)`** — chamada pela Ana perto do fecho; regista outcome no Arcus via `log_voice_interaction` + `update_contact_after_voice_call`.
+  - Tool **`wrap_up_call(intent, summary)`** — chamada pelo agente perto do fecho; regista outcome no Arcus via `log_voice_interaction` + `update_contact_after_voice_call`.
   - Todas as chamadas Arcus em `try/except` — falha = modo genérico, nunca bloqueia a chamada.
 
 - **Teste em modo browser (sem SIP/número)**:
   - `route.ts` (`/api/livekit/token`) aceita `leadPhone` opcional no body e grava em `room.metadata`.
   - `GeminiLiveWidget.tsx` lê `?leadPhone=+351...` da query string da página e envia no POST.
-  - Procedimento: `agent.py dev` local com `ARCUS_SUPABASE_URL`/`ARCUS_SUPABASE_KEY` no ambiente → abrir `/livekit?leadPhone=+351912345678` (telefone de um contact real no Arcus) → falar com a Ana e confirmar que menciona o nome do negócio e adapta a conversa à dor do nicho.
+  - Procedimento: `agent.py dev` local com `ARCUS_SUPABASE_URL`/`ARCUS_SUPABASE_KEY` no ambiente → abrir `/livekit?leadPhone=+351912345678` (telefone de um contact real no Arcus) → falar com o agente e confirmar que menciona o nome do negócio e adapta a conversa à dor do nicho.
 
 - **✅ Resolvido (Junho 2026)**: o projecto Supabase do Arcus (`cwvgwknriswkanjxrvmz.supabase.co`) tinha sido pausado (NXDOMAIN, depois 521 durante o restart) e foi reativado pelo Raphael. `arcus_lookup.py` confirmado a funcionar com dados reais via `test_arcus_lookup.py --name "restaurante"` (devolveu o contacto "Restaurante O Melro" com tags e dor correctas). Falta apenas o teste end-to-end real (passo "Teste em modo browser" acima, com `agent.py dev` + `?leadPhone=...`).
 
 - **Pitches**: secção `# Oferta de Demo de Voz` adicionada aos 5 nichos activos em `~/.openclaw/workspace-prospector/pitches/` e `prospeccao-ativa/agent/pitches/`, usando `{DEMO_PHONE_NUMBER}` (var pendente — ver `prospeccao-ativa/agent/SOUL.md`). `dispatch_whatsapp.py` **não** participa nesta selecção — quem decide entre `# Oferta de demo` e `# Oferta de Demo de Voz` é o agente prospector (OpenClaw) durante a conversa inbound, conforme `SOUL.md`.
+
+## Branding & Marketing (Junho 2026)
+
+### Reposicionamento «Ana» → «24/7 Voice Agent»
+
+«Ana» era a persona do agente do **próprio negócio** do Raphael. Como o portfolio é dirigido a **clientes** (Upwork) — cada um terá o seu próprio agente — o material público passou a usar um termo genérico/white-label:
+- **EN (Upwork/marketing):** «24/7 Voice Agent» / «the agent»
+- **PT:** «Agente de Voz 24/7» / «o agente»
+
+✅ **Feito (working tree, ainda por re-sync nos providers):** `lib/i18n/dictionaries.ts` (38 strings, PT+EN), `app/layout.tsx` (title), os **6 system prompts** (`hume/`, `elevenlabs-agent/`, `livekit-agent/` ×2, `vapi-agent/`, `retell-agent/`, `twilio-agent/`), greetings hardcoded (`livekit-agent/agent.py`, `twilio-agent/server.js`, `app/api/call/route.ts`), notas WhatsApp (`appointments/*`, `transfer-fallback`, `book-meeting.ts`), caller-ID default (`24/7 Voice Agent - Demo`), `lib/google-calendar.ts`.
+- **Intencionalmente mantido:** o identificador técnico `ana-agent` (LiveKit dispatch — mudar quebra `WorkerOptions`/`createDispatch`); o `callerName: 'Ana'` no teste Vapi (nome de cliente-exemplo); o voice-clone histórico «Ana» (`ab262199-…`).
+
+⏳ **Pendente — re-sync dos agentes live (os providers ainda dizem «Ana»):**
+1. **Hume** — `POST /v0/evi/configs/7fd9f653-…` com payload completo (ver «Hume EVI config») a partir do `hume/system-prompt.txt` actualizado + actualizar `event_messages.on_new_chat` (a saudação ainda diz «Sou a Ana»).
+2. **ElevenLabs** — `PATCH` ao agent `agent_9401krm0dzycem49zckkhg3e2pzy` com `elevenlabs-agent/system-prompt.txt`; opcionalmente renomear o agent no dashboard.
+3. **LiveKit** — reiniciar o worker (`pkill -9 -f agent.py` + relançar) para carregar os `.txt` novos.
+4. (Vapi/Retell/Twilio ainda não estão live — apanham o prompt novo quando forem configurados.)
+
+### Geração de vídeo com IA (Veo) — capacidade descoberta
+
+A `GEMINI_API_KEY` do projecto **tem acesso a Veo** (`veo-3.1-fast-generate-preview`, `veo-3.0-*`) e **Imagen 4** via `generativelanguage.googleapis.com` (`:predictLongRunning`). Custo Veo 3.1 Fast ~$0.15/s (clips de até 8s, áudio nativo). `ffmpeg` instalado para juntar clips/legendas/end-card.
+- **Fluxo validado:** Veo gera os clips (vertical 9:16, sem texto no prompt — o texto on-screen do Veo é pouco fiável) → texto/branding/end-card adicionados em pós com PIL + `ffmpeg`.
+- **Pasta `marketing/`** (mp4 git-ignored, roteiros + assets versionados). Piloto: `marketing/the-missed-call/` — anúncio Upwork «The Missed Call» (~18.5s, EN, com end-card «24/7 VOICE AGENT» + `voice-demo-navy.vercel.app`).
+
+### Direcção de copy (mensagem-mãe + ângulo por stack)
+
+**Umbrella:** *"Every missed call is a lost customer. A 24/7 voice agent answers, qualifies the lead, books the meeting — in your customer's language. Live demo, not a mockup."*
+
+| Stack | Ângulo | Linha |
+|---|---|---|
+| Hume | Emotion | "Sounds human. Not a robot." |
+| Gemini Live | Conversation | "Interrupt it. Switch language. It keeps up." |
+| ElevenLabs | Native voice | "A local voice your customers trust." |
+| Vapi | Control | "Your stack, your rules — swap any model." |
+| Retell | Performance | "Benchmarked, low-latency pipeline." |
+| Twilio | Real phone | "A real number. It picks up." |
+
+⏳ **Pendente — slate de marketing:** restantes vídeos («The Portfolio», «The Multilingual Customer», «Features showcase»); copy final escrita das 6 páginas/anúncios; opção de substituir a voz Veo pela voz real ElevenLabs «Marta» em pós.
 
 ## Provedores a acompanhar
 
