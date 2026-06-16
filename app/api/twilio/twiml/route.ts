@@ -8,6 +8,6 @@ export async function POST() {
       { headers: { 'content-type': 'text/xml' } }
     );
   }
-  const xml = `<?xml version="1.0" encoding="UTF-8"?><Response><Connect><ConversationRelay url="${relay}" ttsProvider="ElevenLabs" voice="bBNhdwrIjl4fcVYiRbT2" language="pt-PT" /></Connect></Response>`;
+  const xml = `<?xml version="1.0" encoding="UTF-8"?><Response><Connect><ConversationRelay url="${relay}" ttsProvider="amazon" voice="Polly.Ines-Neural" language="pt-PT" /></Connect></Response>`;
   return new NextResponse(xml, { headers: { 'content-type': 'text/xml' } });
 }
