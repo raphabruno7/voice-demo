@@ -29,8 +29,8 @@ Live voice AI agent (white-label — apresentado publicamente como «24/7 Voice 
 | **LiveKit + Gemini Live** | ✅ Activo (browser) | Melhor fluxo de conversa, multilíngue, candidato a telefone | `/livekit` |
 | **ElevenLabs ConvAI** | ✅ Activo | pt-PT (voz Marta), EN, ES, FR, DE | `/elevenlabs` |
 | **Vapi** | ✅ Activo | Browser voice orchestrator — Gemini 2.5 Flash + ElevenLabs (Sarah) | `/vapi` |
-| **Retell AI** | 🟡 Indisponível (sem keys) | Pipeline alternativo — Gemini/Claude + ElevenLabs Marta | `/retell` |
-| **Twilio ConversationRelay** | 🟡 Número em breve | Telefonia real — PSTN + relay Claude standalone | `/twilio` |
+| **Retell AI** | ✅ Activo | Browser voice orchestrator — Gemini 3.0 Flash + Cartesia Cleo (EN) | `/retell` |
+| **Twilio ConversationRelay** | ✅ Activo (browser WebRTC) | Telefonia real — ConversationRelay + Gemini 2.0 Flash (Fly.io) | `/twilio` |
 
 **Decisão por mercado (Maio 2026):**
 - 🇵🇹 pt-PT browser → Hume EVI 4-mini (sotaque + prosódia nativa)
@@ -58,12 +58,12 @@ Três páginas extra no portfolio, lado a lado com Hume/LiveKit/ElevenLabs na ga
 | Página | Provedor | Pipeline | Voz |
 |---|---|---|---|
 | `/vapi` | Vapi | Orquestrador browser — Gemini 2.5 Flash + ElevenLabs | Sarah (EN, multilingual) |
-| `/retell` | Retell AI | Outro orquestrador browser, para comparar fluxo/latência — LLM em aberto (Gemini por default) + ElevenLabs | Marta (pt-PT) |
-| `/twilio` | Twilio ConversationRelay | Telefonia real (PSTN) — relay standalone com Claude | ElevenLabs Marta via `ttsProvider` do ConversationRelay |
+| `/retell` | Retell AI | Browser voice orchestrator — Gemini 3.0 Flash + Cartesia Cleo (EN) | Cartesia `cleo` (EN) — ElevenLabs bloqueado no plano Free |
+| `/twilio` | Twilio ConversationRelay | Browser WebRTC + ConversationRelay — Gemini 2.0 Flash via Fly.io | Amazon Polly `Polly.Ines-Neural` (pt-PT) |
 
 **Booking tool partilhado** — `lib/book-meeting.ts` (`bookMeeting()`) é agora o core de **todos** os tools de agendamento: `app/api/book-meeting/route.ts` (Hume/LiveKit, auth `x-hume-secret`), `app/api/vapi/book-meeting/route.ts` (auth `x-vapi-secret` == `VAPI_WEBHOOK_SECRET`, parseia `toolCallList`/`toolCalls`), `app/api/retell/book-meeting/route.ts` (auth `x-retell-secret` == `RETELL_WEBHOOK_SECRET`, lê `body.args`). Cada route só faz parsing/auth específicos do provedor e chama `bookMeeting({callerName, callerPhone, startTime})`, que cria o evento no Google Calendar e envia WhatsApp — uma única fonte de verdade para o efeito do agendamento.
 
-**`twilio-agent/` — serviço standalone** — tal como `livekit-agent/`, é um processo Node persistente, **não** corre na Vercel (serverless não aguenta WebSockets de longa duração). `server.js` abre um `WebSocketServer` (`ws`) que implementa o protocolo Twilio **ConversationRelay**: recebe `{type: "setup"}` (saudação inicial) e `{type: "prompt", voicePrompt}` por cada turno do utilizador, faz streaming com `@anthropic-ai/sdk` (`claude-sonnet-4-20250514`, `max_tokens: 200`, `temperature: 0.2`, prompt em `twilio-agent/system-prompt.txt`) e devolve `{type: "text", token, last}` chunk a chunk. A rota `app/api/twilio/twiml/route.ts` (TwiML App Voice URL) responde com `<Connect><ConversationRelay url="${TWILIO_AGENT_WSS_URL}" ttsProvider="ElevenLabs" voice="bBNhdwrIjl4fcVYiRbT2" language="pt-PT" />` — sem `TWILIO_AGENT_WSS_URL` definido, devolve apenas um `<Say>` "ainda não disponível". `/api/twilio/token` gera o JWT (Voice Grant) usado pelo `TwilioWidget` no browser para chamadas via Twilio Voice JS SDK.
+**`twilio-agent/` — serviço standalone no Fly.io** — deploy permanente em `wss://voice-demo-twilio-agent.fly.dev` (2 VMs shared 256MB, `auto_stop=off`, `min_machines_running=1`). `server.js` abre um `WebSocketServer` (`ws`) que implementa o protocolo Twilio **ConversationRelay**: recebe `{type: "setup"}` (saudação inicial) e `{type: "prompt", voicePrompt}` por cada turno do utilizador, faz streaming com **Gemini 2.0 Flash via `fetch` nativo** (SSE, sem SDK extra — `generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse`) e devolve `{type: "text", token, last}` chunk a chunk. A rota `app/api/twilio/twiml/route.ts` (TwiML App Voice URL) responde com `<Connect><ConversationRelay url="${TWILIO_AGENT_WSS_URL}" ttsProvider="amazon" voice="Polly.Ines-Neural" language="pt-PT" />` — sem `TWILIO_AGENT_WSS_URL` definido, devolve apenas um `<Say>` "ainda não disponível". `/api/twilio/token` gera o JWT (Voice Grant) usado pelo `TwilioWidget` no browser para chamadas via Twilio Voice JS SDK. **Para re-deploy:** `cd twilio-agent && flyctl deploy`.
 
 **Fase 1 (estado actual)**: o relay do `twilio-agent` só faz chat por streaming — sem tool-calling (sem `book_meeting`).
 
@@ -79,17 +79,18 @@ Os três demos degradam graciosamente sem configuração: `/vapi` mostra `dict.w
   - **Gap**: `NEXT_PUBLIC_*` só ficam inline no bundle num build novo via Git (CLI `vercel --prod` produziu deployment que dá 404 ao aliasar — não usar). O push deste commit dispara o build certo.
   - Mesmo plano Free do ElevenLabs bloqueia a voz Marta para o **Twilio** ConversationRelay (`ttsProvider="ElevenLabs" voice="bBNhdwrIjl4fcVYiRbT2"`) — rever quando chegar a vez do Twilio.
 
-- **Retell** (`/retell`):
-  - Preencher `RETELL_API_KEY`, `RETELL_AGENT_ID`, `RETELL_WEBHOOK_SECRET`.
-  - Criar o agent no dashboard Retell: LLM em aberto (default Gemini — já há `GEMINI_API_KEY` no projecto), voz Marta, tool `book_meeting` → `/api/retell/book-meeting`.
-  - **Confirmar o payload real do custom function do Retell** — `app/api/retell/book-meeting/route.ts` lê `body.args`; ajustar se o Retell enviar outra forma.
+- ✅ **Retell** (`/retell`) — feito (Junho 2026):
+  - LLM: Retell custom LLM → Gemini 3.0 Flash (auto-upgraded pelo Retell de gemini-2.0-flash). Agent ID: `agent_f732433c304ff6ea52185e3c7c`. Tool `book_meeting` → `/api/retell/book-meeting` (auth `x-retell-secret` == `RETELL_WEBHOOK_SECRET`; payload `body.args`).
+  - Voz: Cartesia `cleo` (EN) via Retell — ElevenLabs Free plan bloqueia vozes da Library via API (`paid_plan_required`); Retell usa o próprio acesso ElevenLabs (não BYOK) pelo que não é afectado, mas a voz Marta foi substituída por Cartesia na decisão final.
+  - Env vars: `RETELL_API_KEY`, `RETELL_AGENT_ID`, `RETELL_WEBHOOK_SECRET` em `.env.local` + Vercel Production.
 
-- **Twilio** (`/twilio`):
-  - Comprar um número Twilio (não-PT aceitável — mais barato e sem burocracia ANACOM para a demo).
-  - Preencher `TWILIO_API_KEY`, `TWILIO_API_SECRET`, `TWILIO_TWIML_APP_SID`, `NEXT_PUBLIC_TWILIO_NUMBER`, `TWILIO_AGENT_WSS_URL`, `ANTHROPIC_API_KEY` (este último para o relay standalone). Reutiliza `TWILIO_ACCOUNT_SID` (já existe para o WhatsApp; também exigido por `/api/twilio/token`).
-  - Deploy de `twilio-agent/` (Railway, como o `livekit-agent/`).
-  - Configurar o TwiML App → Voice URL = `/api/twilio/twiml`.
-  - **Depois disso**: adicionar tool-calling `book_meeting` ao `twilio-agent/server.js` (a fase 1 omite-o — o relay só faz chat por streaming); adicionar validação de assinatura Twilio à rota `/api/twilio/twiml`; considerar um shared-secret no WSS do relay (actualmente sem auth — aceitável até o URL ser público).
+- ✅ **Twilio** (`/twilio`) — feito (Junho 2026):
+  - `twilio-agent/server.js` reescrito: Anthropic SDK removido, Gemini 2.0 Flash via `fetch` nativo SSE.
+  - `app/api/twilio/twiml/route.ts`: `ttsProvider` trocado de ElevenLabs (402 Free plan) para `amazon` `Polly.Ines-Neural` (pt-PT, sem BYOK).
+  - Twilio API Key (`TWILIO_API_KEY`/`TWILIO_API_SECRET`) + TwiML App (`TWILIO_TWIML_APP_SID`) criados via REST API. Voice URL do TwiML App: `https://voice-demo-navy.vercel.app/api/twilio/twiml`.
+  - `twilio-agent/` deployed no **Fly.io** (`voice-demo-twilio-agent`, região `cdg`). `TWILIO_AGENT_WSS_URL=wss://voice-demo-twilio-agent.fly.dev` em Vercel.
+  - Demo browser WebRTC funciona sem número de telefone. ⏳ PSTN (chamada real de telemóvel) requer número Twilio comprado (`NEXT_PUBLIC_TWILIO_NUMBER` pendente — só display).
+  - **Pendente fase 2**: tool-calling `book_meeting` no `twilio-agent/server.js`; validação de assinatura Twilio em `/api/twilio/twiml`.
 
 **Nota de polish (aceitável por agora)**: `RetellWidget`/`TwilioWidget` usam um guard `available` em runtime cujo label `dict.widgets.{retell,twilio}.unavailable` ("Indisponível — em breve") só aparece **depois** de uma tentativa de ligação falhada — diferente do guard build-time `NEXT_PUBLIC_*` do Vapi, porque a config destes dois é server-side. Funciona, mas a copy podia ser revista para indicar isto antes do clique.
 
@@ -230,6 +231,23 @@ Reutiliza `OUTBOUND_TRUNK_ID`, `TRANSFER_RING_TIMEOUT_S`, `TRANSFER_CALLER_ID_NA
 | `NEXT_PUBLIC_VAPI_ASSISTANT_ID` | `VapiWidget.tsx` — `vapi.start(assistantId)` |
 | `VAPI_API_KEY` | Não usada em runtime pelas rotas — usada pontualmente via API REST para configurar assistant/tools |
 | `VAPI_WEBHOOK_SECRET` | `/api/vapi/book-meeting` e `/api/vapi/webhook` — auth header `x-vapi-secret` |
+
+### Activas — Retell AI (`/retell`)
+| Variable | Where |
+|---|---|
+| `RETELL_API_KEY` | `/api/retell/web-call` — cria access token para browser |
+| `RETELL_AGENT_ID` | `/api/retell/web-call` — agent a instanciar |
+| `RETELL_WEBHOOK_SECRET` | `/api/retell/book-meeting` — auth header `x-retell-secret` |
+
+### Activas — Twilio ConversationRelay (`/twilio`)
+| Variable | Where |
+|---|---|
+| `TWILIO_ACCOUNT_SID` | `/api/twilio/token` — AccessToken issuer (partilhado com WhatsApp) |
+| `TWILIO_API_KEY` | `/api/twilio/token` — API Key SID (`SK...`) |
+| `TWILIO_API_SECRET` | `/api/twilio/token` — API Key Secret |
+| `TWILIO_TWIML_APP_SID` | `/api/twilio/token` — VoiceGrant outgoing app (`AP...`) |
+| `TWILIO_AGENT_WSS_URL` | `/api/twilio/twiml` — WSS do relay (`wss://voice-demo-twilio-agent.fly.dev`) |
+| `GEMINI_API_KEY` | `twilio-agent/server.js` no Fly.io — secret configurado via `flyctl secrets set` |
 
 ### Standby (outros provedores)
 | Variable | Where |
