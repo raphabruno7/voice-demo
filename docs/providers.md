@@ -7,7 +7,7 @@
 - **Voz:** "A Viajante de Alma" (`7e4077d4-3f17-4012-bab2-18fd53b0c173`, Octave HUME_AI shared)
 - **LLM:** Claude Sonnet 4 (`claude-sonnet-4-20250514`), temperature 0.2
 - **turn_detection:** silence 500ms, threshold 0.5, prefix_padding 300ms
-- **Custom tool:** `book_meeting` (ID `b8427229-73d6-42d5-bf40-cf4cfbaac73a`) → `/api/book-meeting`
+- **Custom tool:** `book_meeting` (ID `b8427229-73d6-42d5-bf40-cf4cfbaac73a`) → `/ai-agent-voice/api/book-meeting` (client-side invocation via HumeWidget)
 
 **API é PUT-style** — `POST /v0/evi/configs/{id}` substitui campos não enviados. Sempre enviar payload completo (voice, language_model, prompt, event_messages, turn_detection, builtin_tools). Campos `interruption` e `speech_detection_threshold` só editáveis pela UI.
 
@@ -76,7 +76,7 @@ Resultado: `SIPInboundTrunk` + `SIPDispatchRule` (→ `ana-agent`) + opcional `S
 - **Assistant ID:** `629e76a1-3565-48b8-a7e9-e94f67953bc1` (reconfigurado de "Riley")
 - **LLM:** Gemini 2.5 Flash via credential `google` (sem `ANTHROPIC_API_KEY`)
 - **Voz:** `11labs/sarah` (premade EN — Free plan bloqueia Library voices para API calls)
-- **Tool:** `book_meeting` (`d84cbba2-11b7-4e84-89d3-5e55f9fda680`) → `/api/vapi/book-meeting`
+- **Tool:** `book_meeting` (`d84cbba2-11b7-4e84-89d3-5e55f9fda680`) → `/ai-agent-voice/api/vapi/book-meeting`
 
 `NEXT_PUBLIC_VAPI_*` só ficam inline num build novo via Git push → `main`. Nunca usar `vercel --prod` de branch `feat/*`.
 
@@ -94,7 +94,7 @@ Resultado: `SIPInboundTrunk` + `SIPDispatchRule` (→ `ana-agent`) + opcional `S
 
 ## Twilio ConversationRelay
 
-- **TwiML App Voice URL:** `https://voice-demo-navy.vercel.app/api/twilio/twiml`
+- **TwiML App Voice URL:** `https://voice-demo-navy.vercel.app/ai-agent-voice/api/twilio/twiml`
 - **Agent:** `wss://voice-demo-twilio-agent.fly.dev` (Fly.io, `voice-demo-twilio-agent`, cdg)
 - **LLM:** Gemini 2.0 Flash via `fetch` nativo SSE (sem SDK)
 - **TTS:** `ttsProvider="amazon" voice="Polly.Ines-Neural" language="pt-PT"` (ElevenLabs Free = 402)

@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import GeminiLiveWidget from "@/components/GeminiLiveWidget";
 import { getLang } from "@/lib/i18n/lang";
@@ -36,9 +37,9 @@ export default async function LiveKitPage() {
         <GeminiLiveWidget dict={{ common: dict.widgets.common, livekit: dict.widgets.livekit }} />
 
         <div className="mt-16 border-t border-white/10 pt-8 flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-zinc-500">
-          <a href="/" className="hover:text-zinc-300 transition-colors">
+          <Link href="/" className="hover:text-zinc-300 transition-colors">
             {dict.livekit.back}
-          </a>
+          </Link>
           <span className="hidden sm:inline">·</span>
           <a
             href="mailto:work@raphaelbruno.dev"

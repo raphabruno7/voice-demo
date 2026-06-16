@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/cron/outbound-calls",
+      "path": "/ai-agent-voice/api/cron/outbound-calls",
       "schedule": "30 9 * * *"
     }
   ]

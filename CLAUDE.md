@@ -185,4 +185,4 @@ Commit style: feat(livekit): ... / fix(retell): ... / docs(claude): ...
 - **PSTN real** — número Twilio ou DIDWW +351 para LiveKit SIP. WebRTC browser funciona sem número. Ver [docs/providers.md](docs/providers.md).
 - **twilio-agent fase 2** — tool-calling `book_meeting` + validação assinatura Twilio em `/api/twilio/twiml`.
 - **Marketing** — vídeos "The Portfolio", "The Multilingual Customer", "Features showcase". Veo 3.1 via `GEMINI_API_KEY` validado.
-- **feat/ai-agent-voice-basepath** — aguarda portfolio site para activar multi-zone embed.
+- **livekit-agent env vars** — após deploy, atualizar `CALENDAR_ENDPOINT` → `https://voice-demo-navy.vercel.app/ai-agent-voice/api/book-meeting` e `TRANSFER_FALLBACK_ENDPOINT` → `https://voice-demo-navy.vercel.app/ai-agent-voice/api/transfer-fallback` no Railway/local.

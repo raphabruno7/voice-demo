@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { Dict } from "@/lib/i18n/dictionaries";
+import { BASE_PATH } from "@/lib/base-path";
 
 export default function CallMeForm({ dict }: { dict: Dict["widgets"]["callMe"] }) {
   const [phone, setPhone] = useState("");
@@ -12,7 +13,7 @@ export default function CallMeForm({ dict }: { dict: Dict["widgets"]["callMe"] }
     e.preventDefault();
     setStatus("loading");
 
-    const res = await fetch("/api/call", {
+    const res = await fetch(`${BASE_PATH}/api/call`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ phoneNumber: phone }),

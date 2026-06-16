@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import VapiWidget from "@/components/VapiWidget";
 import { getLang } from "@/lib/i18n/lang";
@@ -29,7 +30,7 @@ export default async function VapiPage() {
         <VapiWidget dict={{ common: dict.widgets.common, vapi: dict.widgets.vapi }} />
 
         <div className="mt-16 border-t border-white/10 pt-8 flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-zinc-500">
-          <a href="/" className="hover:text-zinc-300 transition-colors">{dict.vapi.back}</a>
+          <Link href="/" className="hover:text-zinc-300 transition-colors">{dict.vapi.back}</Link>
           <span className="hidden sm:inline">·</span>
           <a href="mailto:work@raphaelbruno.dev" className="hover:text-zinc-300 transition-colors">work@raphaelbruno.dev</a>
           <span className="hidden sm:inline">·</span>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ConversationProvider, useConversation } from "@elevenlabs/react";
 import type { Dict } from "@/lib/i18n/dictionaries";
+import { BASE_PATH } from "@/lib/base-path";
 
 type CallState = "idle" | "connecting" | "active" | "ending";
 type TranscriptEntry = { role: "user" | "agent"; text: string };
@@ -40,7 +41,7 @@ function WidgetInner({ dict }: { dict: ElevenLabsDict }) {
     setState("connecting");
     setTranscript([]);
     try {
-      const res = await fetch("/api/elevenlabs/signed-url", { method: "POST" });
+      const res = await fetch(`${BASE_PATH}/api/elevenlabs/signed-url`, { method: "POST" });
       if (!res.ok) throw new Error("Failed to get signed URL");
       const { signedUrl } = await res.json();
       await conversation.startSession({ signedUrl });

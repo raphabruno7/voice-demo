@@ -10,6 +10,7 @@ import {
   useLocalParticipant,
 } from "@livekit/components-react";
 import type { Dict } from "@/lib/i18n/dictionaries";
+import { BASE_PATH } from "@/lib/base-path";
 
 type LiveKitDict = {
   common: Dict["widgets"]["common"];
@@ -91,7 +92,7 @@ export default function GeminiLiveWidget({ dict }: { dict: LiveKitDict }) {
     setConnecting(true);
     try {
       const leadPhone = new URLSearchParams(window.location.search).get("leadPhone") ?? undefined;
-      const res = await fetch("/api/livekit/token", {
+      const res = await fetch(`${BASE_PATH}/api/livekit/token`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ participantName: "tester", leadPhone }),
