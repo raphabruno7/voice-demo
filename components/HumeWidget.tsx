@@ -10,6 +10,7 @@ import {
 } from "@humeai/voice-react";
 import type { Dict } from "@/lib/i18n/dictionaries";
 import { BASE_PATH } from "@/lib/base-path";
+import { NICHES } from "@/lib/niches";
 
 type HumeDict = {
   common: Dict["widgets"]["common"];
@@ -27,6 +28,7 @@ type TranscriptEntry = {
 export type CallerContext = {
   phone?: string;
   name?: string;
+  niche?: string;
 };
 
 function buildContextText(caller: CallerContext | undefined): string {
@@ -39,6 +41,10 @@ function buildContextText(caller: CallerContext | undefined): string {
   const parts: string[] = [base];
   if (caller?.name) parts.push(`Já sabes o nome do utilizador: ${caller.name}. NÃO perguntes o nome — usa-o naturalmente.`);
   if (caller?.phone) parts.push(`Já sabes o telefone do utilizador: ${caller.phone}. NÃO perguntes o telefone — usa-o directamente no book_meeting.`);
+  if (caller?.niche && NICHES[caller.niche]) {
+    const nicheData = NICHES[caller.niche];
+    parts.push(`NICHO: ${nicheData.label}. Dor provável: ${nicheData.pain_one_liner_pt}`);
+  }
   return parts.join(" ");
 }
 
@@ -103,13 +109,14 @@ function FftBars({ values }: { values: number[] }) {
   );
 }
 
-function WidgetInner({ state, setState, setError, transcript, setTranscript, caller, dict }: {
+function WidgetInner({ state, setState, setError, transcript, setTranscript, caller, niche, dict }: {
   state: CallState;
   setState: (s: CallState) => void;
   setError: (s: string | null) => void;
   transcript: TranscriptEntry[];
   setTranscript: React.Dispatch<React.SetStateAction<TranscriptEntry[]>>;
   caller?: CallerContext;
+  niche?: string;
   dict: HumeDict;
 }) {
   const { connect, disconnect, status, isPlaying, micFft, error, readyState, messages } = useVoice();
@@ -204,7 +211,7 @@ function WidgetInner({ state, setState, setError, transcript, setTranscript, cal
         sessionSettings: {
           type: "session_settings",
           context: {
-            text: buildContextText(caller),
+            text: buildContextText({ ...caller, niche }),
             type: "persistent",
           },
         },
@@ -296,7 +303,7 @@ function WidgetInner({ state, setState, setError, transcript, setTranscript, cal
   );
 }
 
-export default function HumeWidget({ caller, dict }: { caller?: CallerContext; dict: HumeDict }) {
+export default function HumeWidget({ caller, dict, niche }: { caller?: CallerContext; niche?: string; dict: HumeDict }) {
   const [state, setState] = useState<CallState>("idle");
   const [error, setError] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
@@ -344,6 +351,7 @@ export default function HumeWidget({ caller, dict }: { caller?: CallerContext; d
         transcript={transcript}
         setTranscript={setTranscript}
         caller={caller}
+        niche={niche}
         dict={dict}
       />
       {error && (
