@@ -13,7 +13,7 @@ type ElevenLabsDict = {
   elevenlabs: Dict["widgets"]["elevenlabs"];
 };
 
-function WidgetInner({ dict }: { dict: ElevenLabsDict }) {
+function WidgetInner({ dict, niche }: { dict: ElevenLabsDict; niche?: string }) {
   const [state, setState] = useState<CallState>("idle");
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [textInput, setTextInput] = useState("");
@@ -41,7 +41,11 @@ function WidgetInner({ dict }: { dict: ElevenLabsDict }) {
     setState("connecting");
     setTranscript([]);
     try {
-      const res = await fetch(`${BASE_PATH}/api/elevenlabs/signed-url`, { method: "POST" });
+      const nicheName = niche ?? new URLSearchParams(window.location.search).get("niche") ?? undefined;
+      const signedUrlPath = nicheName
+        ? `${BASE_PATH}/api/elevenlabs/signed-url?niche=${encodeURIComponent(nicheName)}`
+        : `${BASE_PATH}/api/elevenlabs/signed-url`;
+      const res = await fetch(signedUrlPath, { method: "POST" });
       if (!res.ok) throw new Error("Failed to get signed URL");
       const { signedUrl } = await res.json();
       await conversation.startSession({ signedUrl });
@@ -134,10 +138,10 @@ function WidgetInner({ dict }: { dict: ElevenLabsDict }) {
   );
 }
 
-export default function ElevenLabsWidget({ dict }: { dict: ElevenLabsDict }) {
+export default function ElevenLabsWidget({ dict, niche }: { dict: ElevenLabsDict; niche?: string }) {
   return (
     <ConversationProvider>
-      <WidgetInner dict={dict} />
+      <WidgetInner dict={dict} niche={niche} />
     </ConversationProvider>
   );
 }
