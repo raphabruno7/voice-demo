@@ -51,7 +51,7 @@ export default async function ElevenLabsPage({
           {dict.elevenlabs.powered}
         </p>
 
-        <ElevenLabsWidget dict={{ common: dict.widgets.common, elevenlabs: dict.widgets.elevenlabs }} />
+        <ElevenLabsWidget niche={isValidNiche ? niche : undefined} dict={{ common: dict.widgets.common, elevenlabs: dict.widgets.elevenlabs }} />
 
         <div className="mt-16 border-t border-white/10 pt-8 flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-zinc-500">
           <Link href="/" className="hover:text-zinc-300 transition-colors">

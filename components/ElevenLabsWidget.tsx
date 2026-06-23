@@ -45,7 +45,7 @@ function WidgetInner({ dict, niche }: { dict: ElevenLabsDict; niche?: string }) 
       const signedUrlPath = nicheName
         ? `${BASE_PATH}/api/elevenlabs/signed-url?niche=${encodeURIComponent(nicheName)}`
         : `${BASE_PATH}/api/elevenlabs/signed-url`;
-      const res = await fetch(signedUrlPath, { method: "POST" });
+      const res = await fetch(signedUrlPath);
       if (!res.ok) throw new Error("Failed to get signed URL");
       const { signedUrl } = await res.json();
       await conversation.startSession({ signedUrl });

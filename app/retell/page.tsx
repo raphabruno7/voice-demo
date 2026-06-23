@@ -44,7 +44,7 @@ export default async function RetellPage({
 
         <p className="mt-4 text-zinc-500 text-sm">{dict.retell.powered}</p>
 
-        <RetellWidget dict={{ common: dict.widgets.common, retell: dict.widgets.retell }} />
+        <RetellWidget niche={isValidNiche ? niche : undefined} dict={{ common: dict.widgets.common, retell: dict.widgets.retell }} />
 
         <div className="mt-16 border-t border-white/10 pt-8 flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-zinc-500">
           <Link href="/" className="hover:text-zinc-300 transition-colors">{dict.retell.back}</Link>

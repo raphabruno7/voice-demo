@@ -45,7 +45,7 @@ export default async function TwilioPage({
 
         <p className="mt-4 text-zinc-500 text-sm">{dict.twilio.powered}</p>
 
-        <TwilioWidget dict={{ common: dict.widgets.common, twilio: dict.widgets.twilio }} />
+        <TwilioWidget niche={isValidNiche ? niche : undefined} dict={{ common: dict.widgets.common, twilio: dict.widgets.twilio }} />
 
         <p className="mt-6 text-sm text-zinc-500">
           {dict.twilio.phoneLabel}{" "}

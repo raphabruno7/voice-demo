@@ -78,7 +78,7 @@ export default async function HumePage({
           {dict.hume.powered}
         </p>
 
-        <HumeWidget caller={caller} dict={{ common: dict.widgets.common, hume: dict.widgets.hume }} />
+        <HumeWidget caller={caller} niche={isValidNiche ? niche : undefined} dict={{ common: dict.widgets.common, hume: dict.widgets.hume }} />
 
         <CallMeForm dict={dict.widgets.callMe} />
 

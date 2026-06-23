@@ -174,12 +174,10 @@ async def entrypoint(ctx: JobContext):
             logger.warning("entrypoint: failed to parse room metadata: %r", ctx.room.metadata)
 
     niche = room_metadata.get("niche")
-    if niche:
-        # Normalize key (e.g., "restaurantes" -> look in NICHES["peniche_restaurantes"] or direct key)
-        niche_key = f"peniche_{niche}" if f"peniche_{niche}" in NICHES else niche
-        if niche_key in NICHES:
-            niche_data = NICHES[niche_key]
-            niche_block = f"""
+    niche_block = ""
+    if niche and niche in NICHES:
+        niche_data = NICHES[niche]
+        niche_block = f"""
 [NICHE CONTEXT]
 Sector: {niche_data.get('label', niche)}
 Dor principal: {niche_data.get('pain_one_liner_pt', '')}

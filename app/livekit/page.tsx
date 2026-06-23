@@ -51,7 +51,7 @@ export default async function LiveKitPage({
           {dict.livekit.powered}
         </p>
 
-        <GeminiLiveWidget dict={{ common: dict.widgets.common, livekit: dict.widgets.livekit }} />
+        <GeminiLiveWidget niche={isValidNiche ? niche : undefined} dict={{ common: dict.widgets.common, livekit: dict.widgets.livekit }} />
 
         <div className="mt-16 border-t border-white/10 pt-8 flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-zinc-500">
           <Link href="/" className="hover:text-zinc-300 transition-colors">
