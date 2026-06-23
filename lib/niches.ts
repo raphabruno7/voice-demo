@@ -29,3 +29,12 @@ export const NICHES: Record<string, Niche> = Object.values(
 
 // Export an array of niche keys sorted alphabetically
 export const NICHE_KEYS: string[] = Object.keys(NICHES).sort();
+
+// Active niches for prospection (from prospeccao-ativa/CLAUDE.md)
+export const ACTIVE_NICHES: string[] = [
+  "restaurantes",
+  "clinicas",
+  "advocacia",
+  "imobiliarias",
+  "guest_house",
+];
