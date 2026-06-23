@@ -5,10 +5,19 @@ import { Badge } from "@/components/ui/badge";
 import RetellWidget from "@/components/RetellWidget";
 import { getLang } from "@/lib/i18n/lang";
 import { dictionaries } from "@/lib/i18n/dictionaries";
+import { NICHES, NICHE_KEYS } from "@/lib/niches";
 
-export default async function RetellPage() {
+export default async function RetellPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ niche?: string }>;
+}) {
+  const params = await searchParams;
   const lang = await getLang();
   const dict = dictionaries[lang];
+
+  const niche = params.niche?.trim();
+  const isValidNiche = niche && NICHE_KEYS.includes(niche);
 
   return (
     <main className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center px-6 py-20">
@@ -24,6 +33,14 @@ export default async function RetellPage() {
         <p className="mt-4 text-zinc-400 text-lg leading-relaxed">
           {dict.retell.descBefore} <strong className="text-white">{dict.retell.descBold}</strong> {dict.retell.descAfter}
         </p>
+
+        {isValidNiche && (
+          <div className="mt-4 text-center">
+            <p className="text-sm border border-zinc-600/40 text-zinc-400 rounded-lg px-3 py-2 inline-block">
+              Para: <strong>{NICHES[niche].label}</strong> · {NICHES[niche].pain_one_liner_pt}
+            </p>
+          </div>
+        )}
 
         <p className="mt-4 text-zinc-500 text-sm">{dict.retell.powered}</p>
 
