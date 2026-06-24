@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { bookMeeting } from '@/lib/book-meeting';
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req: NextRequest) {
   const secret = req.headers.get('x-twilio-agent-secret');
   if (!secret || secret !== process.env.TWILIO_AGENT_SECRET) {
@@ -11,7 +13,7 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    return NextResponse.json({ result: 'Erro ao processar pedido.' }, { status: 400 });
   }
 
   const { callerName, callerPhone, startTime } = body;
