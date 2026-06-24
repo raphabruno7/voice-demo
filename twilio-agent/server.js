@@ -1,4 +1,5 @@
 import { WebSocketServer } from "ws";
+import { createServer } from "node:http";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -7,6 +8,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const SYSTEM_PROMPT = readFileSync(join(__dirname, "system-prompt.txt"), "utf8");
 const PORT = process.env.PORT || 8080;
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
+if (!GEMINI_KEY) { console.error("[twilio-agent] GEMINI_API_KEY not set — exiting"); process.exit(1); }
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${GEMINI_KEY}`;
 const CALENDAR_ENDPOINT = process.env.CALENDAR_ENDPOINT;
 const TWILIO_AGENT_SECRET = process.env.TWILIO_AGENT_SECRET;
@@ -27,8 +29,17 @@ const TOOLS = [{
   }],
 }];
 
-const wss = new WebSocketServer({ port: PORT });
-console.log(`[twilio-agent] ConversationRelay WS listening on :${PORT}`);
+const httpServer = createServer((req, res) => {
+  if (req.method === "GET" && req.url === "/health") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ status: "ok", uptime: process.uptime() }));
+    return;
+  }
+  res.writeHead(404);
+  res.end();
+});
+const wss = new WebSocketServer({ server: httpServer });
+httpServer.listen(PORT, () => console.log(`[twilio-agent] HTTP+WS listening on :${PORT}`));
 
 function safeSend(ws, obj) {
   if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(obj));
@@ -128,7 +139,7 @@ wss.on("connection", (ws) => {
         const { full, functionCall } = await streamGemini(history, ws);
 
         if (functionCall) {
-          // Fechar o turno de texto antes do tool call
+          if (full) safeSend(ws, { type: "text", token: "", last: true });
           safeSend(ws, { type: "text", token: "Um momento, vou marcar já.", last: true });
 
           // Adicionar functionCall ao histórico
