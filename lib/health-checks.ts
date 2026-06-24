@@ -47,13 +47,10 @@ export async function checkHume(): Promise<ServiceCheckResult> {
 
 export async function checkLiveKit(): Promise<ServiceCheckResult> {
   const { latency_ms, error } = await timed(async () => {
-    const httpUrl = process.env.LIVEKIT_URL!.replace(/^wss?:\/\//, 'https://');
-    const svc = new RoomServiceClient(
-      httpUrl,
-      process.env.LIVEKIT_API_KEY!,
-      process.env.LIVEKIT_API_SECRET!
-    );
-    await svc.listRooms();
+    const httpUrl = process.env.LIVEKIT_URL!.trim().replace(/^wss?:\/\//, 'https://');
+    const res = await fetch(httpUrl);
+    // LiveKit Cloud returns 200 with a short body at root — any non-5xx means server is up
+    if (res.status >= 500) throw new Error(`HTTP ${res.status}`);
   });
   return { service: 'LiveKit', status: classify(latency_ms, error), latency_ms, error_msg: error };
 }
