@@ -1,4 +1,5 @@
 import { WebSocketServer } from "ws";
+import { createServer } from "node:http";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -9,8 +10,20 @@ const PORT = process.env.PORT || 8080;
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse&key=${GEMINI_KEY}`;
 
-const wss = new WebSocketServer({ port: PORT });
-console.log(`[twilio-agent] ConversationRelay WS listening on :${PORT}`);
+const server = createServer((req, res) => {
+  if (req.method === 'GET' && req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ok', uptime: process.uptime() }));
+    return;
+  }
+  res.writeHead(404);
+  res.end();
+});
+
+const wss = new WebSocketServer({ server });
+server.listen(PORT, () => {
+  console.log(`[twilio-agent] HTTP+WS listening on :${PORT}`);
+});
 
 function safeSend(ws, obj) {
   if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(obj));
