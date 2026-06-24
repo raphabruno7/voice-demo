@@ -2,7 +2,7 @@
 
 # voice-demo
 
-Portfolio demo de Raphael Bruno — voice AI agent multilíngue com 6 provedores em paralelo para comparação de pipelines. Branding público: «24/7 Voice Agent» / «Agente de Voz 24/7» (white-label). Stack: Next.js 16 (App Router, Turbopack) + Vercel; Python livekit-agent (Railway/local); Node twilio-agent (Fly.io).
+Portfolio demo de Raphael Bruno — voice AI agent multilíngue com 6 provedores em paralelo para comparação de pipelines. Branding público: «24/7 Voice Agent» / «Agente de Voz 24/7» (white-label). Stack: Next.js 16 (App Router, Turbopack) + Vercel; Python livekit-agent (Railway — projecto `balanced-appreciation`); Node twilio-agent (Fly.io).
 
 ## Provedores
 
@@ -71,7 +71,7 @@ lib/
   supabase.ts                       # Lazy singletons (anon + service_role)
   base-path.ts                      # BASE_PATH = '/ai-agent-voice' (branch feat/ai-agent-voice-basepath)
   i18n/dictionaries.ts              # Strings PT + EN (38)
-livekit-agent/                      # Python, Gemini Live — Railway/local
+livekit-agent/                      # Python, Gemini Live — Railway (`balanced-appreciation`)
   agent.py                          # AgentSession + RealtimeModel, inbound + outbound branch
   arcus_lookup.py                   # Arcus CRM — lookup lead por telefone/nome, log outcome
   system-prompt.txt                 # Inbound demo (pt-PT Lisboa)
@@ -185,4 +185,4 @@ Commit style: feat(livekit): ... / fix(retell): ... / docs(claude): ...
 - **PSTN real** — número Twilio ou DIDWW +351 para LiveKit SIP. WebRTC browser funciona sem número. Ver [docs/providers.md](docs/providers.md).
 - **twilio-agent fase 2** — tool-calling `book_meeting` + validação assinatura Twilio em `/api/twilio/twiml`.
 - **Marketing** — vídeos "The Portfolio", "The Multilingual Customer", "Features showcase". Veo 3.1 via `GEMINI_API_KEY` validado.
-- **livekit-agent env vars** — após deploy, atualizar `CALENDAR_ENDPOINT` → `https://voice-demo-navy.vercel.app/ai-agent-voice/api/book-meeting` e `TRANSFER_FALLBACK_ENDPOINT` → `https://voice-demo-navy.vercel.app/ai-agent-voice/api/transfer-fallback` no Railway/local.
+- **livekit-agent Railway** — projecto `balanced-appreciation`, serviço `voice-demo` (ID `66c72a9d-1ae0-4485-942a-4e776e64d49c`). Root directory `/livekit-agent`. Vars configuradas via API. Deploy automático em push para `main`.
