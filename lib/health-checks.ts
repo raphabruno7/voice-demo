@@ -131,8 +131,15 @@ export async function checkRailway(): Promise<ServiceCheckResult> {
     return { service: 'Railway (livekit-agent)', status: 'fail', latency_ms: 0, error_msg: 'LIVEKIT_AGENT_HEALTH_URL not configured' };
   }
   const { latency_ms, error } = await timed(async () => {
-    const res = await fetch(`${url}/health`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    // livekit-agent health server shares $PORT with the Railway domain proxy.
+    // Root responds "OK"; /health path is not reachable via the public domain.
+    const res = await fetch(`${url.trim()}/health`);
+    if (!res.ok && res.status !== 404) throw new Error(`HTTP ${res.status}`);
+    if (res.status === 404) {
+      // Fallback: check root — Railway proxy returns "OK" when process is alive
+      const root = await fetch(url.trim());
+      if (!root.ok) throw new Error(`HTTP ${root.status}`);
+    }
   });
   return { service: 'Railway (livekit-agent)', status: classify(latency_ms, error), latency_ms, error_msg: error };
 }
