@@ -1,36 +1,90 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 24/7 Voice Agent — Voice AI Demo
 
-## Getting Started
+Portfolio demo de Raphael Bruno. Voice AI agent multilíngue com 6 provedores em paralelo para comparação de pipelines de voz. Acessível em [raphaelbruno.dev/ai-agent-voice](https://raphaelbruno.dev/ai-agent-voice).
 
-First, run the development server:
+## Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+| Camada | Tecnologia |
+|---|---|
+| Framework | Next.js 16 (App Router, Turbopack) + React 19 |
+| Deploy Next.js | Vercel — `voice-demo-navy.vercel.app` |
+| Python agent (LiveKit) | Railway — projecto `balanced-appreciation` |
+| Node agent (Twilio) | Fly.io — `voice-demo-twilio-agent` |
+| Database | Supabase (PostgreSQL + RLS) |
+| Calendar | Google Calendar service account |
+| Notificações | Twilio WhatsApp |
+
+## Provedores
+
+| Provedor | Pipeline | Página |
+|---|---|---|
+| **Hume EVI 4-mini** | End-to-end pt-PT, prosódia adaptativa | `/` |
+| **LiveKit + Gemini Live** | `gemini-2.5-flash-native-audio-latest` | `/livekit` |
+| **ElevenLabs ConvAI** | STT + LLM + TTS, voz Marta pt-PT | `/elevenlabs` |
+| **Vapi** | Orquestrador browser — Gemini 2.5 Flash | `/vapi` |
+| **Retell AI** | Orquestrador browser — Gemini 3.0 Flash | `/retell` |
+| **Twilio ConversationRelay** | WebRTC browser + PSTN — Gemini 2.0 Flash | `/twilio` |
+
+## Arquitectura
+
+```
+raphaelbruno.dev/ai-agent-voice  ──proxy──▶  voice-demo-navy.vercel.app
+                                              (Next.js, multi-zone)
+                                                    │
+                                    ┌───────────────┼───────────────┐
+                                    ▼               ▼               ▼
+                             Railway               Fly.io        Supabase
+                          (livekit-agent)    (twilio-agent)    (calls DB)
+                           Python/Gemini      Node/Gemini
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+O portfolio em `raphaelbruno.dev` faz proxy via `beforeFiles` rewrites do Next.js para `voice-demo-navy.vercel.app`, que tem `basePath: '/ai-agent-voice'`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Booking Tool
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Todos os provedores partilham o mesmo sistema de agendamento (`lib/book-meeting.ts`) — cria evento no Google Calendar e envia WhatsApp de confirmação.
 
-## Learn More
+| Route | Provedor |
+|---|---|
+| `/api/book-meeting` | Hume + LiveKit |
+| `/api/vapi/book-meeting` | Vapi |
+| `/api/retell/book-meeting` | Retell |
 
-To learn more about Next.js, take a look at the following resources:
+## Desenvolvimento local
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm install
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Requer ficheiro `.env.local` com as variáveis listadas em [CLAUDE.md](CLAUDE.md#environment-variables).
 
-## Deploy on Vercel
+### Python agent (LiveKit)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+cd livekit-agent
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+set -a && source .env && set +a
+python -u agent.py dev
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Node agent (Twilio)
+
+```bash
+cd twilio-agent
+npm install
+node server.js
+```
+
+## Deploy
+
+- **Next.js**: push para `main` → Vercel auto-deploy
+- **livekit-agent**: push para `main` → Railway auto-deploy (root `/livekit-agent`)
+- **twilio-agent**: `cd twilio-agent && flyctl deploy`
+
+## Documentação
+
+- [CLAUDE.md](CLAUDE.md) — referência operacional completa (stack, env vars, padrões)
+- [docs/providers.md](docs/providers.md) — configuração detalhada de cada provedor
+- [docs/outbound-calls.md](docs/outbound-calls.md) — fluxo de chamadas outbound (cron diário)
