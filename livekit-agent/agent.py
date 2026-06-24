@@ -25,6 +25,10 @@ from arcus_lookup import (
 
 logger = logging.getLogger("ana-agent")
 
+# Load niches mapping
+NICHES_DATA = json.loads(Path(__file__).parent.joinpath("niches.json").read_text())
+NICHES = NICHES_DATA["niches"]
+
 SYSTEM_PROMPT = Path(__file__).parent.joinpath("system-prompt.txt").read_text()
 CONFIRMATION_PROMPT_TEMPLATE = Path(__file__).parent.joinpath("system-prompt-confirmation.txt").read_text()
 CALENDAR_URL = os.environ["CALENDAR_ENDPOINT"]
@@ -160,6 +164,28 @@ async def entrypoint(ctx: JobContext):
 
     is_confirmation_call = job_metadata.get("callType") == "confirmation"
 
+    # Extract niche from room metadata and build niche context block
+    room_metadata: dict = {}
+    niche_block = ""
+    if ctx.room.metadata:
+        try:
+            room_metadata = json.loads(ctx.room.metadata)
+        except (json.JSONDecodeError, TypeError):
+            logger.warning("entrypoint: failed to parse room metadata: %r", ctx.room.metadata)
+
+    niche = room_metadata.get("niche")
+    niche_block = ""
+    if niche and niche in NICHES:
+        niche_data = NICHES[niche]
+        niche_block = f"""
+[NICHE CONTEXT]
+Sector: {niche_data.get('label', niche)}
+Dor principal: {niche_data.get('pain_one_liner_pt', '')}
+Ticket médio estimado: €{niche_data.get('ticket_estimated_eur', 'N/A')}/mês
+Usa este contexto para personalizar o acolhimento e os exemplos que dás.
+
+"""
+
     state: dict = {"lead_context": None, "agent": None}
 
     @function_tool
@@ -183,7 +209,7 @@ async def entrypoint(ctx: JobContext):
 
         lead_context = build_lead_context(contact)
         state["lead_context"] = lead_context
-        new_instructions = SYSTEM_PROMPT + "\n\n" + render_lead_context_block(lead_context)
+        new_instructions = niche_block + SYSTEM_PROMPT + "\n\n" + render_lead_context_block(lead_context)
         if state["agent"] is not None:
             await state["agent"].update_instructions(new_instructions)
 
@@ -374,6 +400,7 @@ async def entrypoint(ctx: JobContext):
     if is_confirmation_call:
         appointment_time_pt = _format_pt_datetime(job_metadata.get("appointmentAt", ""))
         instructions = (
+            niche_block +
             CONFIRMATION_PROMPT_TEMPLATE
             .replace("{client_name}", job_metadata.get("clientName") or "")
             .replace("{appointment_time}", appointment_time_pt)
@@ -387,7 +414,7 @@ async def entrypoint(ctx: JobContext):
         )
     else:
         state["lead_context"] = await _resolve_lead_context(ctx)
-        instructions = SYSTEM_PROMPT + "\n\n" + (
+        instructions = niche_block + SYSTEM_PROMPT + "\n\n" + (
             render_lead_context_block(state["lead_context"])
             if state["lead_context"]
             else UNIDENTIFIED_LEAD_INSTRUCTIONS
