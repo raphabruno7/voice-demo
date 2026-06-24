@@ -47,3 +47,4 @@ livekit-agent/__pycache__/
 
 # MCP config with secrets
 .mcp.json
+.superpowers/

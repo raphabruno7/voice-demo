@@ -1,6 +1,21 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import twilio from 'twilio';
 
-export async function POST() {
+const TWIML_URL = process.env.TWILIO_TWIML_WEBHOOK_URL
+  ?? 'https://voice-demo-navy.vercel.app/ai-agent-voice/api/twilio/twiml';
+
+export async function POST(req: NextRequest) {
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  if (authToken) {
+    const formData = await req.formData();
+    const params = Object.fromEntries(formData.entries()) as Record<string, string>;
+    const signature = req.headers.get('x-twilio-signature') ?? '';
+    const valid = twilio.validateRequest(authToken, signature, TWIML_URL, params);
+    if (!valid) {
+      return new NextResponse('Forbidden', { status: 403 });
+    }
+  }
+
   const relay = process.env.TWILIO_AGENT_WSS_URL;
   if (!relay) {
     return new NextResponse(
