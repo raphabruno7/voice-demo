@@ -13,7 +13,7 @@ async function login(formData: FormData) {
   }
 
   const jar = await cookies();
-  jar.set('admin_token', secret, {
+  jar.set('admin_token', secret as string, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     path: '/status',
