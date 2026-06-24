@@ -2,7 +2,7 @@
 
 # voice-demo
 
-Portfolio demo de Raphael Bruno — voice AI agent multilíngue com 6 provedores em paralelo para comparação de pipelines. Branding público: «24/7 Voice Agent» / «Agente de Voz 24/7» (white-label). Stack: Next.js 16 (App Router, Turbopack) + Vercel; Python livekit-agent (Railway — projecto `balanced-appreciation`); Node twilio-agent (Fly.io).
+Portfolio demo de Raphael Bruno — voice AI agent multilíngue com 6 provedores em paralelo para comparação de pipelines. Branding público: «24/7 Voice Agent» / «Agente de Voz 24/7» (white-label). Stack: Next.js 16 (App Router, Turbopack) + Vercel; Python livekit-agent (Railway — projecto `balanced-appreciation`); Node twilio-agent (Railway — serviço `vivacious-expression`).
 
 ## Provedores
 
@@ -13,7 +13,7 @@ Portfolio demo de Raphael Bruno — voice AI agent multilíngue com 6 provedores
 | **ElevenLabs ConvAI** | ✅ Activo | STT + LLM + TTS pipeline | Marta (pt-PT) | `/elevenlabs` |
 | **Vapi** | ✅ Activo | Orquestrador browser — Gemini 2.5 Flash | Sarah (EN) | `/vapi` |
 | **Retell AI** | ✅ Activo | Orquestrador browser — Gemini 3.0 Flash | Cartesia Cleo (EN) | `/retell` |
-| **Twilio ConversationRelay** | ✅ Activo (WebRTC) | ConversationRelay + Fly.io — Gemini 2.0 Flash | Polly.Ines-Neural (pt-PT) | `/twilio` |
+| **Twilio ConversationRelay** | ✅ Activo (WebRTC) | ConversationRelay + Railway — Gemini 2.0 Flash | Polly.Ines-Neural (pt-PT) | `/twilio` |
 
 Config detalhado de cada provedor: [docs/providers.md](docs/providers.md)
 
@@ -29,13 +29,13 @@ Config detalhado de cada provedor: [docs/providers.md](docs/providers.md)
 
 Retell envia o payload em `body.args` (Vapi envia em `toolCallList[0].function.arguments`).
 
-## twilio-agent (Fly.io)
+## twilio-agent (Railway)
 
-Standalone WebSocket server, **não** corre na Vercel. Deploy permanente em `wss://voice-demo-twilio-agent.fly.dev` (app `voice-demo-twilio-agent`, região `cdg`, 256MB, `auto_stop=off`, `min_machines_running=1`).
+Standalone WebSocket server, **não** corre na Vercel. Deploy permanente em `wss://vivacious-expression-production-02d1.up.railway.app` (Railway — projecto `balanced-appreciation`, serviço `vivacious-expression`).
 
 Protocolo: `{type:"setup"}` → saudação; `{type:"prompt", voicePrompt}` → stream Gemini 2.0 Flash via `fetch` SSE → `{type:"text", token, last}`.
 
-**Re-deploy:** `cd twilio-agent && flyctl deploy`
+**Re-deploy:** push para `main` activa Railway auto-deploy
 
 ## Estrutura
 
@@ -85,9 +85,9 @@ livekit-agent/                      # Python, Gemini Live — Railway (`balanced
   system-prompt.txt                 # Inbound demo (pt-PT Lisboa)
   system-prompt-confirmation.txt    # Outbound confirmação (pt-PT, divulgação AI Act)
   setup_sip.py                      # Configura LiveKit SIP trunks para DIDWW +351
-twilio-agent/                       # Node.js, ConversationRelay — Fly.io
+twilio-agent/                       # Node.js, ConversationRelay — Railway
   server.js                         # WebSocket server, Gemini 2.0 Flash SSE
-  Dockerfile / fly.toml             # Deploy Fly.io
+  Dockerfile                        # Deploy Railway (auto-deploy em push para main)
 ```
 
 ## Key patterns
@@ -124,7 +124,7 @@ twilio-agent/                       # Node.js, ConversationRelay — Fly.io
 | Var | Onde |
 |---|---|
 | `LIVEKIT_URL` / `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` | Token route + Python agent |
-| `GEMINI_API_KEY` | Python agent + twilio-agent Fly.io (`flyctl secrets set`) |
+| `GEMINI_API_KEY` | Python agent (Railway livekit-agent) + twilio-agent (Railway vivacious-expression) |
 | `TRANSFER_TO_NUMBER` / `TRANSFER_FALLBACK_ENDPOINT` | Python agent |
 | `OUTBOUND_TRUNK_ID` / `TRANSFER_RING_TIMEOUT_S` / `TRANSFER_CALLER_ID_NAME` | Python agent — attended SIP transfer |
 | `ARCUS_SUPABASE_URL` / `ARCUS_SUPABASE_KEY` / `ARCUS_ORG_ID` | Python agent — Arcus CRM |
@@ -151,7 +151,7 @@ twilio-agent/                       # Node.js, ConversationRelay — Fly.io
 |---|---|
 | `TWILIO_API_KEY` / `TWILIO_API_SECRET` | `/api/twilio/token` — AccessToken (reutiliza `TWILIO_ACCOUNT_SID`) |
 | `TWILIO_TWIML_APP_SID` | `/api/twilio/token` — VoiceGrant outgoing app |
-| `TWILIO_AGENT_WSS_URL` | `/api/twilio/twiml` — `wss://voice-demo-twilio-agent.fly.dev` |
+| `TWILIO_AGENT_WSS_URL` | `/api/twilio/twiml` — `wss://vivacious-expression-production-02d1.up.railway.app` |
 
 ### Outbound calls (cron)
 | Var | Default |
@@ -169,7 +169,7 @@ Ver fluxo completo: [docs/outbound-calls.md](docs/outbound-calls.md)
 | `ADMIN_SECRET` | `middleware.ts` + `/status/login` — password do dashboard `/status` |
 | `HEALTH_EMAIL_FROM` | Remetente: `health@raphaelbruno.dev` (domínio verificado via Cloudflare) |
 | `LIVEKIT_AGENT_HEALTH_URL` | URL público Railway — `GET /health` na porta 8081 |
-| `TWILIO_AGENT_HEALTH_URL` | `https://voice-demo-twilio-agent.fly.dev` |
+| `TWILIO_AGENT_HEALTH_URL` | `https://vivacious-expression-production-02d1.up.railway.app` |
 
 ## Database
 
@@ -186,8 +186,7 @@ Push `main` → Vercel auto-deploy. Production: `https://voice-demo-navy.vercel.
 cd livekit-agent
 LIVEKIT_URL=... LIVEKIT_API_KEY=... LIVEKIT_API_SECRET=... GEMINI_API_KEY=... python -u agent.py dev
 
-# Node agent (Twilio) — Fly.io
-cd twilio-agent && flyctl deploy
+# Node agent (Twilio) — Railway (auto-deploy em push para main)
 ```
 
 ## Git
@@ -202,12 +201,11 @@ Commit style: feat(livekit): ... / fix(retell): ... / docs(claude): ...
 
 ### ⚡ Health Check — activação pós-merge (PR #3)
 1. **Aplicar migração** `supabase/migrations/004_health_checks.sql` no Supabase dashboard (SQL Editor)
-2. **Env vars Vercel** — adicionar: `RESEND_API_KEY`, `ADMIN_SECRET` (`openssl rand -hex 32`), `HEALTH_EMAIL_FROM=health@raphaelbruno.dev`, `TWILIO_AGENT_HEALTH_URL=https://voice-demo-twilio-agent.fly.dev`, `LIVEKIT_AGENT_HEALTH_URL=<url-railway>`
-3. **Deploy twilio-agent** — `cd twilio-agent && flyctl deploy` (GET /health adicionado)
-4. **Deploy livekit-agent** — push para `main` activa Railway auto-deploy (GET /health porta 8081 adicionado)
-5. **Verificar Railway** — confirmar que porta 8081 está exposta publicamente (Settings → Networking)
-6. **Testar cron** — `curl -H "Authorization: Bearer $CRON_SECRET" https://voice-demo-navy.vercel.app/api/cron/health-check`
-7. **Verificar dashboard** — navegar para `/status`, login com `ADMIN_SECRET`
+2. **Env vars Vercel** — falta apenas: `RESEND_API_KEY`, `LIVEKIT_AGENT_HEALTH_URL=<url-railway-porta-8081>` (restantes já adicionadas)
+3. **Deploy livekit-agent** — push para `main` activa Railway auto-deploy (GET /health porta 8081 adicionado)
+4. **Verificar Railway livekit** — confirmar que porta 8081 está exposta publicamente (Settings → Networking)
+5. **Testar cron** — `curl -H "Authorization: Bearer $CRON_SECRET" https://voice-demo-navy.vercel.app/api/cron/health-check`
+6. **Verificar dashboard** — navegar para `/status`, login com `ADMIN_SECRET` = `4d379718d75e41871f6f05072b07fa2bf5e51a40d396938a5334c307701c9c07`
 
 ### Outros pendentes
 - **PSTN real** — número Twilio ou DIDWW +351 para LiveKit SIP. WebRTC browser funciona sem número. Ver [docs/providers.md](docs/providers.md).

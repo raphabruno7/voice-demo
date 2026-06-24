@@ -140,16 +140,17 @@ export async function checkRailway(): Promise<ServiceCheckResult> {
   return { service: 'Railway (livekit-agent)', status: classify(latency_ms, error), latency_ms, error_msg: error };
 }
 
-export async function checkFlyIo(): Promise<ServiceCheckResult> {
+export async function checkTwilioAgent(): Promise<ServiceCheckResult> {
   const url = process.env.TWILIO_AGENT_HEALTH_URL;
   if (!url) {
-    return { service: 'Fly.io (twilio-agent)', status: 'fail', latency_ms: 0, error_msg: 'TWILIO_AGENT_HEALTH_URL not configured' };
+    return { service: 'Railway (twilio-agent)', status: 'fail', latency_ms: 0, error_msg: 'TWILIO_AGENT_HEALTH_URL not configured' };
   }
   const { latency_ms, error } = await timed(async () => {
     const res = await fetch(`${url}/health`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    // Railway's proxy returns 426 for plain HTTP on WebSocket services — server is alive
+    if (!res.ok && res.status !== 426) throw new Error(`HTTP ${res.status}`);
   });
-  return { service: 'Fly.io (twilio-agent)', status: classify(latency_ms, error), latency_ms, error_msg: error };
+  return { service: 'Railway (twilio-agent)', status: classify(latency_ms, error), latency_ms, error_msg: error };
 }
 
 export async function runAllChecks(): Promise<ServiceCheckResult[]> {
@@ -163,7 +164,7 @@ export async function runAllChecks(): Promise<ServiceCheckResult[]> {
     checkGoogleCalendar,
     checkSupabase,
     checkRailway,
-    checkFlyIo,
+    checkTwilioAgent,
   ];
 
   const settled = await Promise.allSettled(checks.map((fn) => fn()));

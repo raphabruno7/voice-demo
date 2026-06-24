@@ -28,7 +28,7 @@ import {
   checkRetell,
   checkTwilio,
   checkRailway,
-  checkFlyIo,
+  checkTwilioAgent,
   checkVapi,
   checkLiveKit,
   checkGoogleCalendar,
@@ -149,17 +149,24 @@ describe('checkRailway', () => {
   });
 });
 
-describe('checkFlyIo', () => {
+describe('checkTwilioAgent', () => {
   it('returns ok on 200', async () => {
     mockFetch.mockResolvedValueOnce(makeResponse(200));
-    const result = await checkFlyIo();
-    expect(result.service).toBe('Fly.io (twilio-agent)');
+    const result = await checkTwilioAgent();
+    expect(result.service).toBe('Railway (twilio-agent)');
+    expect(result.status).toBe('ok');
+  });
+
+  it('returns ok on 426 (Railway proxy WebSocket-only response)', async () => {
+    mockFetch.mockResolvedValueOnce(makeResponse(426));
+    const result = await checkTwilioAgent();
+    expect(result.service).toBe('Railway (twilio-agent)');
     expect(result.status).toBe('ok');
   });
 
   it('returns fail when URL not configured', async () => {
     delete process.env.TWILIO_AGENT_HEALTH_URL;
-    const result = await checkFlyIo();
+    const result = await checkTwilioAgent();
     expect(result.status).toBe('fail');
     expect(result.error_msg).toMatch(/not configured/);
   });
@@ -230,7 +237,7 @@ describe('runAllChecks', () => {
     mockFetch.mockRejectedValue(new Error('All down'));
     const results = await runAllChecks();
     const fetchBased = results.filter((r: ServiceCheckResult) =>
-      ['Hume EVI', 'ElevenLabs', 'Retell AI', 'Twilio', 'Railway (livekit-agent)', 'Fly.io (twilio-agent)'].includes(r.service)
+      ['Hume EVI', 'ElevenLabs', 'Retell AI', 'Twilio', 'Railway (livekit-agent)', 'Railway (twilio-agent)'].includes(r.service)
     );
     fetchBased.forEach((r: ServiceCheckResult) => expect(r.status).toBe('fail'));
   });
