@@ -129,11 +129,7 @@ wss.on("connection", (ws) => {
 
         if (functionCall) {
           // Fechar o turno de texto antes do tool call
-          if (full) {
-            safeSend(ws, { type: "text", token: "", last: true });
-          } else {
-            safeSend(ws, { type: "text", token: "Um momento, vou marcar já.", last: true });
-          }
+          safeSend(ws, { type: "text", token: "Um momento, vou marcar já.", last: true });
 
           // Adicionar functionCall ao histórico
           history.push({ role: "model", parts: [{ functionCall }] });
