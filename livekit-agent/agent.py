@@ -2,9 +2,11 @@ import json
 import os
 import asyncio
 import logging
+import threading
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from livekit import rtc, api
 from livekit.api import TwirpError
 from livekit.agents import Agent, AgentSession, JobContext, WorkerOptions, cli, function_tool
@@ -432,7 +434,30 @@ async def entrypoint(ctx: JobContext):
     await session.generate_reply(instructions=greeting_instructions)
 
 
+class _HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/health':
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(b'{"status":"ok"}')
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+    def log_message(self, format, *args):
+        pass  # silenciar logs de acesso
+
+
+def _start_health_server(port: int = 8081) -> None:
+    srv = HTTPServer(('', port), _HealthHandler)
+    t = threading.Thread(target=srv.serve_forever, daemon=True)
+    t.start()
+    logger.info(f"Health server listening on :{port}")
+
+
 if __name__ == "__main__":
+    _start_health_server()
     cli.run_app(WorkerOptions(
         entrypoint_fnc=entrypoint,
         agent_name="ana-agent",
