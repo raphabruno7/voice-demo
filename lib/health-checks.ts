@@ -47,7 +47,7 @@ export async function checkHume(): Promise<ServiceCheckResult> {
 
 export async function checkLiveKit(): Promise<ServiceCheckResult> {
   const { latency_ms, error } = await timed(async () => {
-    const httpUrl = process.env.LIVEKIT_URL!.replace('wss://', 'https://');
+    const httpUrl = process.env.LIVEKIT_URL!.replace(/^wss?:\/\//, 'https://');
     const svc = new RoomServiceClient(
       httpUrl,
       process.env.LIVEKIT_API_KEY!,
@@ -113,7 +113,8 @@ export async function checkTwilio(): Promise<ServiceCheckResult> {
 
 export async function checkGoogleCalendar(): Promise<ServiceCheckResult> {
   const { latency_ms, error } = await timed(async () => {
-    await listUpcomingEvents({ timeMin: new Date().toISOString(), timeMax: new Date().toISOString() });
+    const now = new Date();
+    await listUpcomingEvents({ timeMin: now.toISOString(), timeMax: new Date(now.getTime() + 60_000).toISOString() });
   });
   return { service: 'Google Calendar', status: classify(latency_ms, error), latency_ms, error_msg: error };
 }
