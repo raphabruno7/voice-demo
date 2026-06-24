@@ -29,14 +29,14 @@ logger = logging.getLogger("ana-agent")
 
 SYSTEM_PROMPT = Path(__file__).parent.joinpath("system-prompt.txt").read_text()
 CONFIRMATION_PROMPT_TEMPLATE = Path(__file__).parent.joinpath("system-prompt-confirmation.txt").read_text()
-CALENDAR_URL = os.environ["CALENDAR_ENDPOINT"]
-CALENDAR_SECRET = os.environ["WEBHOOK_SECRET"]
+CALENDAR_URL = os.environ.get("CALENDAR_ENDPOINT", "")
+CALENDAR_SECRET = os.environ.get("WEBHOOK_SECRET", "")
 TRANSFER_TO_NUMBER = os.environ.get("TRANSFER_TO_NUMBER", "+351931822816")
 TRANSFER_FALLBACK_URL = os.environ.get("TRANSFER_FALLBACK_ENDPOINT")
 
 # Outbound confirmation/reschedule/cancel calls reuse the same Next.js host as
 # CALENDAR_ENDPOINT (e.g. https://voice-demo-navy.vercel.app/api/book-meeting).
-_APP_BASE_URL = CALENDAR_URL.rsplit("/api/", 1)[0]
+_APP_BASE_URL = CALENDAR_URL.rsplit("/api/", 1)[0] if CALENDAR_URL else ""
 APPOINTMENTS_CONFIRM_URL = f"{_APP_BASE_URL}/api/appointments/confirm"
 APPOINTMENTS_RESCHEDULE_URL = f"{_APP_BASE_URL}/api/appointments/reschedule"
 APPOINTMENTS_CANCEL_URL = f"{_APP_BASE_URL}/api/appointments/cancel"

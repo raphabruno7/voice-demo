@@ -38,7 +38,7 @@ export async function checkHume(): Promise<ServiceCheckResult> {
   const { latency_ms, error } = await timed(async () => {
     const res = await fetch(
       `https://api.hume.ai/v0/evi/configs/${process.env.NEXT_PUBLIC_HUME_CONFIG_ID}`,
-      { headers: { Authorization: `Token ${process.env.HUME_API_KEY}` } }
+      { headers: { 'X-Hume-Api-Key': process.env.HUME_API_KEY! } }
     );
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
   });
@@ -89,7 +89,7 @@ export async function checkVapi(): Promise<ServiceCheckResult> {
 export async function checkRetell(): Promise<ServiceCheckResult> {
   const { latency_ms, error } = await timed(async () => {
     const res = await fetch(
-      `https://api.retellai.com/v2/get-agent/${process.env.RETELL_AGENT_ID}`,
+      `https://api.retellai.com/get-agent/${process.env.RETELL_AGENT_ID}`,
       { headers: { Authorization: `Bearer ${process.env.RETELL_API_KEY}` } }
     );
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
