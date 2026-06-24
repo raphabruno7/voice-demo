@@ -15,9 +15,11 @@ vi.mock('@/lib/google-calendar', () => ({
 }));
 
 vi.mock('livekit-server-sdk', () => ({
-  RoomServiceClient: vi.fn().mockImplementation(() => ({
-    listRooms: vi.fn().mockResolvedValue({ rooms: [] }),
-  })),
+  RoomServiceClient: vi.fn(function () {
+    return {
+      listRooms: vi.fn().mockResolvedValue({ rooms: [] }),
+    };
+  }),
 }));
 
 import {
@@ -27,6 +29,10 @@ import {
   checkTwilio,
   checkRailway,
   checkFlyIo,
+  checkVapi,
+  checkLiveKit,
+  checkGoogleCalendar,
+  checkSupabase,
   runAllChecks,
   type ServiceCheckResult,
 } from './health-checks';
@@ -34,7 +40,7 @@ import {
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
-function makeResponse(status: number, latencyMs = 100): Response {
+function makeResponse(status: number): Response {
   return {
     ok: status >= 200 && status < 300,
     status,
@@ -148,6 +154,64 @@ describe('checkFlyIo', () => {
     mockFetch.mockResolvedValueOnce(makeResponse(200));
     const result = await checkFlyIo();
     expect(result.service).toBe('Fly.io (twilio-agent)');
+    expect(result.status).toBe('ok');
+  });
+
+  it('returns fail when URL not configured', async () => {
+    delete process.env.TWILIO_AGENT_HEALTH_URL;
+    const result = await checkFlyIo();
+    expect(result.status).toBe('fail');
+    expect(result.error_msg).toMatch(/not configured/);
+  });
+});
+
+describe('checkVapi', () => {
+  it('returns ok on 200', async () => {
+    process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY = 'vapi-pub-key';
+    process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID = 'vapi-asst-1';
+    mockFetch.mockResolvedValueOnce(makeResponse(200));
+    const result = await checkVapi();
+    expect(result.service).toBe('Vapi');
+    expect(result.status).toBe('ok');
+  });
+
+  it('returns ok on 401 (public key expected)', async () => {
+    process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY = 'vapi-pub-key';
+    process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID = 'vapi-asst-1';
+    mockFetch.mockResolvedValueOnce(makeResponse(401));
+    const result = await checkVapi();
+    expect(result.status).toBe('ok');
+  });
+
+  it('returns fail on 500', async () => {
+    process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY = 'vapi-pub-key';
+    process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID = 'vapi-asst-1';
+    mockFetch.mockResolvedValueOnce(makeResponse(500));
+    const result = await checkVapi();
+    expect(result.status).toBe('fail');
+  });
+});
+
+describe('checkLiveKit', () => {
+  it('returns ok when listRooms succeeds', async () => {
+    const result = await checkLiveKit();
+    expect(result.service).toBe('LiveKit');
+    expect(result.status).toBe('ok');
+  });
+});
+
+describe('checkGoogleCalendar', () => {
+  it('returns ok when listUpcomingEvents succeeds', async () => {
+    const result = await checkGoogleCalendar();
+    expect(result.service).toBe('Google Calendar');
+    expect(result.status).toBe('ok');
+  });
+});
+
+describe('checkSupabase', () => {
+  it('returns ok when DB responds', async () => {
+    const result = await checkSupabase();
+    expect(result.service).toBe('Supabase');
     expect(result.status).toBe('ok');
   });
 });

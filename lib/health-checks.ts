@@ -79,7 +79,7 @@ export async function checkVapi(): Promise<ServiceCheckResult> {
       headers: { Authorization: `Bearer ${process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY}` },
     });
     // 401 aqui é esperado (chave pública) — confirmamos apenas que o endpoint responde
-    if (res.status === 500 || res.status === 502 || res.status === 503) {
+    if (res.status >= 500) {
       throw new Error(`HTTP ${res.status}`);
     }
   });
