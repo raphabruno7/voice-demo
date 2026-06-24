@@ -153,6 +153,8 @@ twilio-agent/                       # Node.js, ConversationRelay — Railway
 | `TWILIO_TWIML_APP_SID` | `/api/twilio/token` — VoiceGrant outgoing app |
 | `TWILIO_AGENT_WSS_URL` | `/api/twilio/twiml` — `wss://vivacious-expression-production-02d1.up.railway.app` |
 | `TWILIO_AGENT_SECRET` | `/api/twilio/book-meeting` (x-twilio-agent-secret) + Railway twilio-agent (TWILIO_AGENT_SECRET) |
+| `CALENDAR_ENDPOINT` | Railway twilio-agent → `https://voice-demo-navy.vercel.app/ai-agent-voice/api/twilio/book-meeting` |
+| `TWILIO_TWIML_WEBHOOK_URL` | `/api/twilio/twiml` — override URL para validação HMAC (opcional; default: URL produção) |
 
 ### Outbound calls (cron)
 | Var | Default |
