@@ -60,6 +60,8 @@ app/
     twilio/twiml/route.ts           # TwiML App Voice URL
     appointments/*/route.ts         # Tools outbound (confirm/reschedule/cancel/opt-out)
     cron/outbound-calls/route.ts    # Vercel Cron diário 09:30 UTC
+    cron/health-check/route.ts      # Vercel Cron diário 07:00 UTC — health check
+    status/logout/route.ts          # Logout admin (limpa cookie)
     transfer-fallback/route.ts      # WhatsApp fallback em transfer falhado
 components/
   AgentNav.tsx                      # Nav top-right entre provedores
@@ -69,8 +71,14 @@ lib/
   google-calendar.ts                # createEvent / listUpcomingEvents / updateEventTime / cancelEvent
   whatsapp.ts                       # sendWhatsApp (OpenClaw + fallback Twilio)
   supabase.ts                       # Lazy singletons (anon + service_role)
+  health-checks.ts                  # 10 check functions + runAllChecks() — Hume/LiveKit/ElevenLabs/Vapi/Retell/Twilio/GCal/Supabase/Railway/Fly
+  resend.ts                         # sendHealthEmail() — daily + alert, via Resend API
   base-path.ts                      # BASE_PATH = '/ai-agent-voice' (branch feat/ai-agent-voice-basepath)
   i18n/dictionaries.ts              # Strings PT + EN (38)
+app/
+  status/page.tsx                   # Dashboard admin — estado actual + histórico 30 dias (protegido por cookie)
+  status/login/page.tsx             # Login admin com Server Action
+middleware.ts                       # Protege /status/* → redireciona para /status/login sem cookie admin_token
 livekit-agent/                      # Python, Gemini Live — Railway (`balanced-appreciation`)
   agent.py                          # AgentSession + RealtimeModel, inbound + outbound branch
   arcus_lookup.py                   # Arcus CRM — lookup lead por telefone/nome, log outcome
@@ -154,10 +162,20 @@ twilio-agent/                       # Node.js, ConversationRelay — Fly.io
 
 Ver fluxo completo: [docs/outbound-calls.md](docs/outbound-calls.md)
 
+### Health Check & Admin
+| Var | Onde |
+|---|---|
+| `RESEND_API_KEY` | `/api/cron/health-check` — envio de emails via Resend |
+| `ADMIN_SECRET` | `middleware.ts` + `/status/login` — password do dashboard `/status` |
+| `HEALTH_EMAIL_FROM` | Remetente: `health@raphaelbruno.dev` (domínio verificado via Cloudflare) |
+| `LIVEKIT_AGENT_HEALTH_URL` | URL público Railway — `GET /health` na porta 8081 |
+| `TWILIO_AGENT_HEALTH_URL` | `https://voice-demo-twilio-agent.fly.dev` |
+
 ## Database
 
 - **`calls`** — RLS, public SELECT, writes via service_role. `supabase/migrations/001_calls.sql`
 - **`outbound_appointments`** — RLS, **sem** public SELECT (PII). `003_outbound_appointments.sql`. Estados: `pending → called → confirmed / rescheduled / cancelled / no_answer / failed / opted_out`
+- **`health_checks`** — RLS, service_role only. `004_health_checks.sql`. Colunas: `id, checked_at, service, status (ok|degraded|fail), latency_ms, error_msg`. Retenção 30 dias (limpo pelo cron). ⚠️ **Migração ainda por aplicar no Supabase dashboard.**
 
 ## Deploy
 
@@ -182,6 +200,16 @@ Commit style: feat(livekit): ... / fix(retell): ... / docs(claude): ...
 
 ## Pendentes
 
+### ⚡ Health Check — activação pós-merge (PR #3)
+1. **Aplicar migração** `supabase/migrations/004_health_checks.sql` no Supabase dashboard (SQL Editor)
+2. **Env vars Vercel** — adicionar: `RESEND_API_KEY`, `ADMIN_SECRET` (`openssl rand -hex 32`), `HEALTH_EMAIL_FROM=health@raphaelbruno.dev`, `TWILIO_AGENT_HEALTH_URL=https://voice-demo-twilio-agent.fly.dev`, `LIVEKIT_AGENT_HEALTH_URL=<url-railway>`
+3. **Deploy twilio-agent** — `cd twilio-agent && flyctl deploy` (GET /health adicionado)
+4. **Deploy livekit-agent** — push para `main` activa Railway auto-deploy (GET /health porta 8081 adicionado)
+5. **Verificar Railway** — confirmar que porta 8081 está exposta publicamente (Settings → Networking)
+6. **Testar cron** — `curl -H "Authorization: Bearer $CRON_SECRET" https://voice-demo-navy.vercel.app/api/cron/health-check`
+7. **Verificar dashboard** — navegar para `/status`, login com `ADMIN_SECRET`
+
+### Outros pendentes
 - **PSTN real** — número Twilio ou DIDWW +351 para LiveKit SIP. WebRTC browser funciona sem número. Ver [docs/providers.md](docs/providers.md).
 - **twilio-agent fase 2** — tool-calling `book_meeting` + validação assinatura Twilio em `/api/twilio/twiml`.
 - **Marketing** — vídeos "The Portfolio", "The Multilingual Customer", "Features showcase". Veo 3.1 via `GEMINI_API_KEY` validado.
