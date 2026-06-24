@@ -69,14 +69,14 @@ export default function NicheSelector() {
             <button
               key={key}
               onClick={() => handleSelect(key)}
-              className={`w-full text-left px-4 py-2 transition-colors ${
+              className={`w-full text-left px-4 py-3 transition-colors ${
                 activeNiche === key
                   ? "bg-zinc-700 text-white"
                   : "text-zinc-300 hover:bg-zinc-800"
               }`}
             >
-              <div className="font-medium">{NICHES[key].label}</div>
-              <div className="text-xs text-zinc-500 mt-0.5">{NICHES[key].pain_one_liner_pt}</div>
+              <div className="font-medium leading-tight">{NICHES[key].label}</div>
+              <div className="text-xs text-zinc-500 mt-1 leading-normal">{NICHES[key].pain_one_liner_pt}</div>
             </button>
           ))}
         </div>
