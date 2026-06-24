@@ -457,7 +457,8 @@ def _start_health_server(port: int = 8081) -> None:
 
 
 if __name__ == "__main__":
-    _start_health_server()
+    health_port = int(os.environ.get("PORT", 8081))
+    _start_health_server(health_port)
     cli.run_app(WorkerOptions(
         entrypoint_fnc=entrypoint,
         agent_name="ana-agent",
