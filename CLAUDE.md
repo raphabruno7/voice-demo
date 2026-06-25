@@ -179,7 +179,7 @@ Ver fluxo completo: [docs/outbound-calls.md](docs/outbound-calls.md)
 
 - **`calls`** — RLS, public SELECT, writes via service_role. `supabase/migrations/001_calls.sql`
 - **`outbound_appointments`** — RLS, **sem** public SELECT (PII). `003_outbound_appointments.sql`. Estados: `pending → called → confirmed / rescheduled / cancelled / no_answer / failed / opted_out`
-- **`health_checks`** — RLS, service_role only. `004_health_checks.sql`. Colunas: `id, checked_at, service, status (ok|degraded|fail), latency_ms, error_msg`. Retenção 30 dias (limpo pelo cron). ⚠️ **Migração ainda por aplicar no Supabase dashboard.**
+- **`health_checks`** — RLS, service_role only. `004_health_checks.sql`. Colunas: `id, checked_at, service, status (ok|degraded|fail), latency_ms, error_msg`. Retenção 30 dias (limpo pelo cron). ✅ Migração aplicada. Cron a correr — 10/10 serviços ok.
 
 ## Deploy
 
@@ -203,15 +203,5 @@ Commit style: feat(livekit): ... / fix(retell): ... / docs(claude): ...
 
 ## Pendentes
 
-### ⚡ Health Check — activação pós-merge (PR #3)
-1. **Aplicar migração** `supabase/migrations/004_health_checks.sql` no Supabase dashboard (SQL Editor)
-2. **Env vars Vercel** — falta apenas: `RESEND_API_KEY`, `LIVEKIT_AGENT_HEALTH_URL=<url-railway-porta-8081>` (restantes já adicionadas)
-3. **Deploy livekit-agent** — push para `main` activa Railway auto-deploy (GET /health porta 8081 adicionado)
-4. **Verificar Railway livekit** — confirmar que porta 8081 está exposta publicamente (Settings → Networking)
-5. **Testar cron** — `curl -H "Authorization: Bearer $CRON_SECRET" https://voice-demo-navy.vercel.app/api/cron/health-check`
-6. **Verificar dashboard** — navegar para `/status`, login com `ADMIN_SECRET` = `4d379718d75e41871f6f05072b07fa2bf5e51a40d396938a5334c307701c9c07`
-
-### Outros pendentes
 - **PSTN real** — número Twilio ou DIDWW +351 para LiveKit SIP. WebRTC browser funciona sem número. Ver [docs/providers.md](docs/providers.md).
 - **Marketing** — vídeos "The Portfolio", "The Multilingual Customer", "Features showcase". Veo 3.1 via `GEMINI_API_KEY` validado.
-- **livekit-agent Railway** — projecto `balanced-appreciation`, serviço `voice-demo` (ID `66c72a9d-1ae0-4485-942a-4e776e64d49c`). Root directory `/livekit-agent`. Vars configuradas via API. Deploy automático em push para `main`.
