@@ -7,7 +7,6 @@ export async function POST(req: NextRequest) {
   const jar = await cookies();
   jar.delete('admin_token');
 
-  const loginUrl = req.nextUrl.clone();
-  loginUrl.pathname = '/status/login';
+  const loginUrl = new URL('/ai-agent-voice/status/login', req.url);
   return NextResponse.redirect(loginUrl);
 }

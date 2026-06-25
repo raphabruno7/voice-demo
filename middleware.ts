@@ -21,8 +21,7 @@ export function middleware(req: NextRequest) {
   }
 
   if (token !== secret) {
-    const loginUrl = req.nextUrl.clone();
-    loginUrl.pathname = '/status/login';
+    const loginUrl = new URL('/ai-agent-voice/status/login', req.url);
     return NextResponse.redirect(loginUrl);
   }
 
