@@ -65,7 +65,7 @@ export async function sendHealthEmail(
 
   const client = new Resend(apiKey);
   const from = process.env.HEALTH_EMAIL_FROM ?? 'health@raphaelbruno.dev';
-  const to = 'raphaelbruno.dev@gmail.com';
+  const to = process.env.HEALTH_EMAIL_TO ?? 'work@raphaelbruno.dev';
 
   const subject =
     type === 'alert'
