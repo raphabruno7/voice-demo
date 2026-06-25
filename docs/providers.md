@@ -95,10 +95,11 @@ Resultado: `SIPInboundTrunk` + `SIPDispatchRule` (→ `ana-agent`) + opcional `S
 ## Twilio ConversationRelay
 
 - **TwiML App Voice URL:** `https://voice-demo-navy.vercel.app/ai-agent-voice/api/twilio/twiml`
-- **Agent:** `wss://voice-demo-twilio-agent.fly.dev` (Fly.io, `voice-demo-twilio-agent`, cdg)
-- **LLM:** Gemini 2.0 Flash via `fetch` nativo SSE (sem SDK)
+- **Agent:** `wss://vivacious-expression-production-02d1.up.railway.app` (Railway — projecto `balanced-appreciation`, serviço `vivacious-expression`)
+- **LLM:** Gemini 2.5 Flash via `fetch` nativo SSE (sem SDK)
 - **TTS:** `ttsProvider="amazon" voice="Polly.Ines-Neural" language="pt-PT"` (ElevenLabs Free = 402)
-- **Re-deploy:** `cd twilio-agent && flyctl deploy`
-- **Fase 2 pendente:** tool-calling `book_meeting` + validação assinatura Twilio em `/api/twilio/twiml`
+- **Tool calling:** `book_meeting` → `/api/twilio/book-meeting` (auth via `x-twilio-agent-secret`)
+- **Validação:** `twilio.validateRequest()` com body `formData` no `/api/twilio/twiml`
+- **Re-deploy:** push para `main` activa Railway auto-deploy
 
 ElevenLabs Free plan bloqueia vozes da Voice Library (`paid_plan_required`) — afecta Vapi (BYOK) e Twilio `ttsProvider="ElevenLabs"`. Não afecta ElevenLabs ConvAI (usa o próprio acesso 11labs) nem Retell (idem).
