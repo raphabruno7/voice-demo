@@ -16,7 +16,7 @@ async function login(formData: FormData) {
   jar.set('admin_token', secret as string, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    path: '/status',
+    path: '/',
     maxAge: 60 * 60 * 24 * 7, // 7 days
     sameSite: 'lax',
   });

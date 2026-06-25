@@ -21,7 +21,8 @@ export function middleware(req: NextRequest) {
   }
 
   if (token !== secret) {
-    const loginUrl = new URL('/status/login', req.url);
+    const loginUrl = req.nextUrl.clone();
+    loginUrl.pathname = '/status/login';
     return NextResponse.redirect(loginUrl);
   }
 
