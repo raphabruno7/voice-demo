@@ -197,7 +197,7 @@ LIVEKIT_URL=... LIVEKIT_API_KEY=... LIVEKIT_API_SECRET=... GEMINI_API_KEY=... py
 
 ```
 Remote: https://github.com/raphabruno7/voice-demo.git
-Branch: main — push directo, sem PRs
+Branch: main — sempre branch + PR, nunca commit directo em main
 Commit style: feat(livekit): ... / fix(retell): ... / docs(claude): ...
 ```
 
@@ -213,6 +213,5 @@ Commit style: feat(livekit): ... / fix(retell): ... / docs(claude): ...
 
 ### Outros pendentes
 - **PSTN real** — número Twilio ou DIDWW +351 para LiveKit SIP. WebRTC browser funciona sem número. Ver [docs/providers.md](docs/providers.md).
-- **twilio-agent fase 2** — tool-calling `book_meeting` + validação assinatura Twilio em `/api/twilio/twiml`.
 - **Marketing** — vídeos "The Portfolio", "The Multilingual Customer", "Features showcase". Veo 3.1 via `GEMINI_API_KEY` validado.
 - **livekit-agent Railway** — projecto `balanced-appreciation`, serviço `voice-demo` (ID `66c72a9d-1ae0-4485-942a-4e776e64d49c`). Root directory `/livekit-agent`. Vars configuradas via API. Deploy automático em push para `main`.
