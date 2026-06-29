@@ -12,7 +12,7 @@
 
 - `twilio-agent/` usa ESM (`"type": "module"`) — todos os imports com `import`, não `require`
 - Gemini endpoint: `streamGenerateContent?alt=sse` (mantém SSE)
-- `TWILIO_AGENT_SECRET`: `f119b41f-9544-4ef6-996f-a275007c3f15`
+- `TWILIO_AGENT_SECRET`: `<TWILIO_AGENT_SECRET>`
 - `CALENDAR_ENDPOINT`: `https://voice-demo-navy.vercel.app/ai-agent-voice/api/twilio/book-meeting`
 - Branch de trabalho: criar `feat/twilio-agent-fase2` antes de qualquer alteração
 - Sempre PR para `main` — nunca commitar directamente
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
 Abrir `/Users/raphaelbruno/voice-demo/.env.local` e adicionar no final:
 
 ```
-TWILIO_AGENT_SECRET=f119b41f-9544-4ef6-996f-a275007c3f15
+TWILIO_AGENT_SECRET=<TWILIO_AGENT_SECRET>
 ```
 
 - [ ] **Step 4: Testar a route localmente**
@@ -97,7 +97,7 @@ curl -s -X POST http://localhost:3000/ai-agent-voice/api/twilio/book-meeting \
 # Com secret → 200
 curl -s -X POST http://localhost:3000/ai-agent-voice/api/twilio/book-meeting \
   -H "Content-Type: application/json" \
-  -H "x-twilio-agent-secret: f119b41f-9544-4ef6-996f-a275007c3f15" \
+  -H "x-twilio-agent-secret: <TWILIO_AGENT_SECRET>" \
   -d '{"callerName":"Test","callerPhone":"+351912345678","startTime":"2026-06-26T10:00:00"}' | python3 -m json.tool
 # Esperado: {"result":"Ficou marcado para ..."}
 ```
@@ -356,7 +356,7 @@ wss.on("connection", (ws) => {
 cd /Users/raphaelbruno/voice-demo/twilio-agent
 GEMINI_API_KEY=<your-gemini-api-key> \
 CALENDAR_ENDPOINT=https://voice-demo-navy.vercel.app/ai-agent-voice/api/twilio/book-meeting \
-TWILIO_AGENT_SECRET=f119b41f-9544-4ef6-996f-a275007c3f15 \
+TWILIO_AGENT_SECRET=<TWILIO_AGENT_SECRET> \
 node server.js
 # Esperado: [twilio-agent] ConversationRelay WS listening on :8080
 # Sem erros de syntax ou import
@@ -381,7 +381,7 @@ git commit -m "feat(twilio-agent): gemini-2.5-flash + book_meeting tool calling 
 ```bash
 cd /Users/raphaelbruno/voice-demo
 npx vercel env add TWILIO_AGENT_SECRET production
-# Quando pedir o valor: f119b41f-9544-4ef6-996f-a275007c3f15
+# Quando pedir o valor: <TWILIO_AGENT_SECRET>
 ```
 
 - [ ] **Step 2: Adicionar secrets ao Fly.io**
@@ -389,7 +389,7 @@ npx vercel env add TWILIO_AGENT_SECRET production
 ```bash
 cd /Users/raphaelbruno/voice-demo/twilio-agent
 flyctl secrets set \
-  TWILIO_AGENT_SECRET=f119b41f-9544-4ef6-996f-a275007c3f15 \
+  TWILIO_AGENT_SECRET=<TWILIO_AGENT_SECRET> \
   CALENDAR_ENDPOINT=https://voice-demo-navy.vercel.app/ai-agent-voice/api/twilio/book-meeting
 ```
 
@@ -448,7 +448,7 @@ curl -s -X POST https://voice-demo-navy.vercel.app/ai-agent-voice/api/twilio/boo
 # Com secret → 200
 curl -s -X POST https://voice-demo-navy.vercel.app/ai-agent-voice/api/twilio/book-meeting \
   -H "Content-Type: application/json" \
-  -H "x-twilio-agent-secret: f119b41f-9544-4ef6-996f-a275007c3f15" \
+  -H "x-twilio-agent-secret: <TWILIO_AGENT_SECRET>" \
   -d '{"callerName":"Test","callerPhone":"+351912345678","startTime":"2026-06-26T10:00:00"}'
 # Esperado: {"result":"Ficou marcado para ..."}
 ```
