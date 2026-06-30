@@ -1,11 +1,11 @@
 {
   "crons": [
     {
-      "path": "/ai-agent-voice/api/cron/outbound-calls",
+      "path": "/ai-agent-voice/api/cron/outbound-calls/",
       "schedule": "30 9 * * *"
     },
     {
-      "path": "/ai-agent-voice/api/cron/health-check",
+      "path": "/ai-agent-voice/api/cron/health-check/",
       "schedule": "0 7 * * *"
     }
   ]
