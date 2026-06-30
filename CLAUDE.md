@@ -166,6 +166,8 @@ twilio-agent/                       # Node.js, ConversationRelay — Railway
 
 Ver fluxo completo: [docs/outbound-calls.md](docs/outbound-calls.md)
 
+> ⚠️ **Crons no `vercel.json` TÊM de terminar em `/`** — `next.config.ts` tem `trailingSlash: true`, por isso um path sem barra dá 308 e o Vercel Cron (que não segue redirects) nunca corre o handler. Ao adicionar um cron novo, mete a barra final.
+
 ### Health Check & Admin
 | Var | Onde |
 |---|---|
