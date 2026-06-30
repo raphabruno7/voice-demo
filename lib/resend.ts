@@ -72,10 +72,15 @@ export async function sendHealthEmail(
       ? `[ALERTA] Voice Demo — ${results.filter((r) => r.status === 'fail').length} falha(s)`
       : `Voice Demo — Saúde ${new Date().toLocaleDateString('pt-PT')}`;
 
-  await client.emails.send({
+  const { error } = await client.emails.send({
     from,
     to,
     subject,
     html: buildHtml(results, type),
   });
+
+  if (error) {
+    // ponytail: throw so the cron route surfaces this in Vercel logs
+    throw new Error(`[resend] Failed to send ${type} email: ${JSON.stringify(error)}`);
+  }
 }

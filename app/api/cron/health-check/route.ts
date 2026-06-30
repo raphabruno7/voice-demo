@@ -31,15 +31,28 @@ export async function GET(req: NextRequest) {
   );
 
   const hasFail = results.some((r) => r.status === 'fail');
+  const emailErrors: string[] = [];
 
   // Alerta imediato se houver falha
   if (hasFail) {
-    await sendHealthEmail(results, 'alert');
+    try {
+      await sendHealthEmail(results, 'alert');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error(msg);
+      emailErrors.push(msg);
+    }
   }
 
   // Relatório diário sempre
-  await sendHealthEmail(results, 'daily');
+  try {
+    await sendHealthEmail(results, 'daily');
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error(msg);
+    emailErrors.push(msg);
+  }
 
   const summary = results.map((r) => ({ service: r.service, status: r.status, latency_ms: r.latency_ms }));
-  return NextResponse.json({ ok: true, checked: results.length, hasFail, summary });
+  return NextResponse.json({ ok: true, checked: results.length, hasFail, summary, emailErrors });
 }
