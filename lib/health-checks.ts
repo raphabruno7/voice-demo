@@ -144,6 +144,21 @@ export async function checkRailway(): Promise<ServiceCheckResult> {
   return { service: 'Railway (livekit-agent)', status: classify(latency_ms, error), latency_ms, error_msg: error };
 }
 
+export async function checkGemini(): Promise<ServiceCheckResult> {
+  const { latency_ms, error } = await timed(async () => {
+    const key = process.env.GEMINI_API_KEY;
+    if (!key) throw new Error('GEMINI_API_KEY not set');
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-native-audio-latest?key=${key}`
+    );
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body?.error?.message ?? `HTTP ${res.status}`);
+    }
+  });
+  return { service: 'Gemini Live', status: classify(latency_ms, error), latency_ms, error_msg: error };
+}
+
 export async function checkTwilioAgent(): Promise<ServiceCheckResult> {
   const url = process.env.TWILIO_AGENT_HEALTH_URL;
   if (!url) {
@@ -169,6 +184,7 @@ export async function runAllChecks(): Promise<ServiceCheckResult[]> {
     checkSupabase,
     checkRailway,
     checkTwilioAgent,
+    checkGemini,
   ];
 
   const settled = await Promise.allSettled(checks.map((fn) => fn()));
