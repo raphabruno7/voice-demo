@@ -2,7 +2,7 @@
 
 # voice-demo
 
-Portfolio demo de Raphael Bruno — voice AI agent multilíngue com 6 provedores em paralelo para comparação de pipelines. Branding público: «24/7 Voice Agent» / «Agente de Voz 24/7» (white-label). Stack: Next.js 16 (App Router, Turbopack) + Vercel; Python livekit-agent (Railway — projecto `balanced-appreciation`); Node twilio-agent (Railway — serviço `vivacious-expression`).
+Portfolio demo de Raphael Bruno — voice AI agent multilíngue com 6 provedores em paralelo para comparação de pipelines. Branding público: «24/7 Voice Agent» / «Agente de Voz 24/7» (white-label). Stack: Next.js 16 (App Router, Turbopack) + Vercel; Python livekit-agent (Railway — projecto `balanced-appreciation`, serviço **`voice-demo`** — nome enganador, não é o site Next.js); Node twilio-agent (Railway — mesmo projecto, serviço `vivacious-expression`).
 
 ## Provedores
 
@@ -79,7 +79,7 @@ app/
   status/page.tsx                   # Dashboard admin — estado actual + histórico 30 dias (protegido por cookie)
   status/login/page.tsx             # Login admin com Server Action
 middleware.ts                       # Protege /status/* → redireciona para /status/login sem cookie admin_token
-livekit-agent/                      # Python, Gemini Live — Railway (`balanced-appreciation`)
+livekit-agent/                      # Python, Gemini Live — Railway (`balanced-appreciation`, serviço `voice-demo`)
   agent.py                          # AgentSession + RealtimeModel, inbound + outbound branch
   arcus_lookup.py                   # Arcus CRM — lookup lead por telefone/nome, log outcome
   system-prompt.txt                 # Inbound demo (pt-PT Lisboa)
@@ -124,10 +124,12 @@ twilio-agent/                       # Node.js, ConversationRelay — Railway
 | Var | Onde |
 |---|---|
 | `LIVEKIT_URL` / `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` | Token route + Python agent |
-| `GEMINI_API_KEY` | Python agent (Railway livekit-agent) + twilio-agent (Railway vivacious-expression) |
+| `GEMINI_API_KEY` | Python agent (Railway `voice-demo`) + twilio-agent (Railway `vivacious-expression`) + Vercel (`checkGemini` health check) + `.env.local` / `livekit-agent/.env` |
 | `TRANSFER_TO_NUMBER` / `TRANSFER_FALLBACK_ENDPOINT` | Python agent |
 | `OUTBOUND_TRUNK_ID` / `TRANSFER_RING_TIMEOUT_S` / `TRANSFER_CALLER_ID_NAME` | Python agent — attended SIP transfer |
 | `ARCUS_SUPABASE_URL` / `ARCUS_SUPABASE_KEY` / `ARCUS_ORG_ID` | Python agent — Arcus CRM |
+
+> ⚠️ **`GEMINI_API_KEY` vive em 4 sítios** (ver acima) — se rodares a key (ex: projecto GCP suspenso por billing), actualiza todos ou o `/livekit` fica com áudio em silêncio mesmo que o health check dê `ok`. O serviço Railway `voice-demo` (dentro do projecto `balanced-appreciation`) só aplica a variável nova depois de um **Deploy manual** — mudar o valor não reinicia o processo sozinho.
 
 ### ElevenLabs
 | Var | Onde |

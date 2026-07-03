@@ -429,9 +429,23 @@ async def entrypoint(ctx: JobContext):
     )
     state["agent"] = agent
     session = AgentSession(llm=model)
-    await session.start(agent, room=ctx.room)
 
-    await session.generate_reply(instructions=greeting_instructions)
+    # Silencia o input do utilizador até a saudação terminar: ruído ambiente
+    # ao ligar (clique do browser, mic a abrir) activa o VAD do Gemini antes
+    # de tempo e o agente responde "não te ouvi bem" em vez de cumprimentar.
+    session.input.set_audio_enabled(False)
+    await session.start(agent, room=ctx.room)
+    try:
+        await asyncio.wait_for(
+            session.generate_reply(instructions=greeting_instructions).wait_for_playout(),
+            timeout=15,
+        )
+    except (asyncio.TimeoutError, Exception):
+        logger.warning("greeting playout falhou/estagnou; reactivo o input à mesma", exc_info=True)
+    finally:
+        # Nunca deixar o mic mudo: se a saudação erra ou bloqueia, o utilizador
+        # continuaria surdo o resto da chamada. O finally garante a reactivação.
+        session.input.set_audio_enabled(True)
 
 
 class _HealthHandler(BaseHTTPRequestHandler):
