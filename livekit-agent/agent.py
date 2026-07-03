@@ -416,9 +416,12 @@ async def entrypoint(ctx: JobContext):
         temperature=0.3,
         realtime_input_config=genai_types.RealtimeInputConfig(
             automatic_activity_detection=genai_types.AutomaticActivityDetection(
-                end_of_speech_sensitivity=genai_types.EndSensitivity.END_SENSITIVITY_HIGH,
-                silence_duration_ms=300,
-                prefix_padding_ms=100,
+                # LOW (default) tolera pausas naturais a meio da frase; o HIGH anterior
+                # cortava a fala do utilizador em qualquer pausa breve, produzindo áudio
+                # truncado que o Gemini genuinamente não percebia ("não te ouvi bem").
+                end_of_speech_sensitivity=genai_types.EndSensitivity.END_SENSITIVITY_LOW,
+                silence_duration_ms=600,
+                prefix_padding_ms=200,
             )
         ),
     )
