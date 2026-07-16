@@ -31,6 +31,7 @@ SYSTEM_PROMPT = Path(__file__).parent.joinpath("system-prompt.txt").read_text()
 CONFIRMATION_PROMPT_TEMPLATE = Path(__file__).parent.joinpath("system-prompt-confirmation.txt").read_text()
 CALENDAR_URL = os.environ.get("CALENDAR_ENDPOINT", "")
 CALENDAR_SECRET = os.environ.get("WEBHOOK_SECRET", "")
+METRICS_URL = os.environ.get("METRICS_ENDPOINT", "")
 TRANSFER_TO_NUMBER = os.environ.get("TRANSFER_TO_NUMBER", "+351931822816")
 TRANSFER_FALLBACK_URL = os.environ.get("TRANSFER_FALLBACK_ENDPOINT")
 
@@ -432,6 +433,41 @@ async def entrypoint(ctx: JobContext):
     )
     state["agent"] = agent
     session = AgentSession(llm=model)
+
+    # ponytail: e2e_latency já vem calculado pela SDK (fim-da-fala-do-utilizador
+    # até início da resposta) na ChatMessage do assistente — não precisamos
+    # recompor a partir de EOUMetrics/RealtimeModelMetrics (evento deprecated
+    # nesta versão da SDK).
+    turn_latencies: list[int] = []
+
+    @session.on("conversation_item_added")
+    def _on_conversation_item_added(ev):
+        item = ev.item
+        if getattr(item, "role", None) != "assistant":
+            return
+        e2e = item.metrics.get("e2e_latency")
+        if e2e is not None:
+            turn_latencies.append(round(e2e * 1000))
+
+    async def _flush_turn_metrics():
+        if not turn_latencies or not METRICS_URL:
+            return
+        payload = {
+            "callId": ctx.room.name,
+            "turns": [{"e2eLatencyMs": ms} for ms in turn_latencies],
+        }
+        try:
+            async with httpx.AsyncClient() as client:
+                await client.post(
+                    METRICS_URL,
+                    json=payload,
+                    headers={"x-metrics-secret": CALENDAR_SECRET},
+                    timeout=10,
+                )
+        except Exception:
+            logger.exception("turn metrics flush failed")
+
+    ctx.add_shutdown_callback(_flush_turn_metrics)
 
     # Silencia o input do utilizador até a saudação terminar: ruído ambiente
     # ao ligar (clique do browser, mic a abrir) activa o VAD do Gemini antes

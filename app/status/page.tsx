@@ -33,6 +33,27 @@ async function getLatest(): Promise<Row[]> {
   });
 }
 
+function percentile(sorted: number[], p: number): number {
+  const idx = Math.ceil((p / 100) * sorted.length) - 1;
+  return sorted[Math.max(0, Math.min(idx, sorted.length - 1))];
+}
+
+async function getLatencyStats(): Promise<{ p50: number; p95: number; count: number } | null> {
+  const db = getSupabaseAdmin();
+  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { data } = await db
+    .from('turn_metrics')
+    .select('e2e_latency_ms')
+    .gte('created_at', since);
+
+  if (!data || data.length === 0) return null;
+
+  const sorted = (data as { e2e_latency_ms: number }[])
+    .map((r) => r.e2e_latency_ms)
+    .sort((a, b) => a - b);
+  return { p50: percentile(sorted, 50), p95: percentile(sorted, 95), count: sorted.length };
+}
+
 async function getHistory(): Promise<{ service: string; ok: number; total: number }[]> {
   const db = getSupabaseAdmin();
   const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -54,7 +75,7 @@ async function getHistory(): Promise<{ service: string; ok: number; total: numbe
 }
 
 export default async function StatusPage() {
-  const [latest, history] = await Promise.all([getLatest(), getHistory()]);
+  const [latest, history, latency] = await Promise.all([getLatest(), getHistory(), getLatencyStats()]);
   const historyMap = new Map(history.map((h) => [h.service, h]));
   const lastChecked = latest[0]?.checked_at
     ? new Date(latest[0].checked_at).toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })
@@ -76,6 +97,13 @@ export default async function StatusPage() {
       <p style={{ color: '#9ca3af', fontSize: 13, marginBottom: 32 }}>
         Último check: {lastChecked} (Europe/Lisbon)
       </p>
+
+      {latency && (
+        <p style={{ color: '#374151', fontSize: 13, marginBottom: 20 }}>
+          Latência por turno (LiveKit, 7 dias, {latency.count} turnos) — p50: <strong>{latency.p50}ms</strong>,
+          {' '}p95: <strong>{latency.p95}ms</strong>
+        </p>
+      )}
 
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
         <thead>
