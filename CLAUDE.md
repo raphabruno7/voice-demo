@@ -52,6 +52,7 @@ app/
     book-meeting/route.ts           # Tool Hume + LiveKit
     livekit/token/route.ts          # LiveKit JWT
     livekit/webhook/route.ts        # Room events → Supabase
+    livekit/metrics/route.ts        # Latência por turno (e2e_latency) → turn_metrics
     elevenlabs/signed-url/route.ts  # ElevenLabs signed URL
     vapi/book-meeting/route.ts      # Tool Vapi
     retell/web-call/route.ts        # Retell access token
@@ -128,6 +129,7 @@ twilio-agent/                       # Node.js, ConversationRelay — Railway
 | `TRANSFER_TO_NUMBER` / `TRANSFER_FALLBACK_ENDPOINT` | Python agent |
 | `OUTBOUND_TRUNK_ID` / `TRANSFER_RING_TIMEOUT_S` / `TRANSFER_CALLER_ID_NAME` | Python agent — attended SIP transfer |
 | `ARCUS_SUPABASE_URL` / `ARCUS_SUPABASE_KEY` / `ARCUS_ORG_ID` | Python agent — Arcus CRM |
+| `METRICS_ENDPOINT` | Python agent — POST de latência por turno para `/api/livekit/metrics` (reutiliza `WEBHOOK_SECRET` como `x-metrics-secret`) |
 
 > ⚠️ **`GEMINI_API_KEY` vive em 4 sítios** (ver acima) — se rodares a key (ex: projecto GCP suspenso por billing), actualiza todos ou o `/livekit` fica com áudio em silêncio mesmo que o health check dê `ok`. O serviço Railway `voice-demo` (dentro do projecto `balanced-appreciation`) só aplica a variável nova depois de um **Deploy manual** — mudar o valor não reinicia o processo sozinho.
 
@@ -184,6 +186,7 @@ Ver fluxo completo: [docs/outbound-calls.md](docs/outbound-calls.md)
 - **`calls`** — RLS, public SELECT, writes via service_role. `supabase/migrations/001_calls.sql`
 - **`outbound_appointments`** — RLS, **sem** public SELECT (PII). `003_outbound_appointments.sql`. Estados: `pending → called → confirmed / rescheduled / cancelled / no_answer / failed / opted_out`
 - **`health_checks`** — RLS, service_role only. `004_health_checks.sql`. Colunas: `id, checked_at, service, status (ok|degraded|fail), latency_ms, error_msg`. Retenção 30 dias (limpo pelo cron). ✅ Migração aplicada. Cron a correr — 10/10 serviços ok.
+- **`turn_metrics`** — RLS, service_role only. `005_turn_metrics.sql`. Colunas: `id, call_id, e2e_latency_ms, created_at`. Latência por turno do LiveKit (fim-da-fala-do-utilizador → 1ª resposta do agente), enviada pelo `livekit-agent/agent.py` via `POST /api/livekit/metrics`. p50/p95 dos últimos 7 dias no `/status`.
 
 ## Deploy
 

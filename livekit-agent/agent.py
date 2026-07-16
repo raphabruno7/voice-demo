@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from livekit import rtc, api
 from livekit.api import TwirpError
-from livekit.agents import Agent, AgentSession, JobContext, WorkerOptions, cli, function_tool
+from livekit.agents import Agent, AgentSession, JobContext, WorkerOptions, cli, function_tool, metrics
 from livekit.plugins import google
 from google.genai import types as genai_types
 from google.protobuf.duration_pb2 import Duration
@@ -31,6 +31,7 @@ SYSTEM_PROMPT = Path(__file__).parent.joinpath("system-prompt.txt").read_text()
 CONFIRMATION_PROMPT_TEMPLATE = Path(__file__).parent.joinpath("system-prompt-confirmation.txt").read_text()
 CALENDAR_URL = os.environ.get("CALENDAR_ENDPOINT", "")
 CALENDAR_SECRET = os.environ.get("WEBHOOK_SECRET", "")
+METRICS_URL = os.environ.get("METRICS_ENDPOINT", "")
 TRANSFER_TO_NUMBER = os.environ.get("TRANSFER_TO_NUMBER", "+351931822816")
 TRANSFER_FALLBACK_URL = os.environ.get("TRANSFER_FALLBACK_ENDPOINT")
 
@@ -432,6 +433,53 @@ async def entrypoint(ctx: JobContext):
     )
     state["agent"] = agent
     session = AgentSession(llm=model)
+
+    # ChatMessage.metrics["e2e_latency"] só é preenchido no pipeline STT->LLM->TTS
+    # — nunca no RealtimeModel (Gemini native audio, speech-to-speech) que este
+    # agente usa. O evento "metrics_collected" está deprecated a favor desse
+    # campo, mas continua a disparar para sessões realtime e é a única fonte
+    # real de latência aqui: end_of_utterance_delay (fim da fala do utilizador
+    # → fim de turno) + ttft (até ao primeiro áudio de resposta).
+    turn_partials: dict[str, dict[str, int]] = {}
+    turn_latencies: list[int] = []
+
+    @session.on("metrics_collected")
+    def _on_metrics_collected(ev):
+        m = ev.metrics
+        sid = getattr(m, "speech_id", None)
+        if not sid:
+            return
+        if isinstance(m, metrics.EOUMetrics):
+            turn_partials.setdefault(sid, {})["eou_delay_ms"] = round(m.end_of_utterance_delay * 1000)
+        elif isinstance(m, metrics.RealtimeModelMetrics) and m.ttft >= 0:
+            turn_partials.setdefault(sid, {})["ttft_ms"] = round(m.ttft * 1000)
+        else:
+            return
+
+        partial = turn_partials[sid]
+        if "eou_delay_ms" in partial and "ttft_ms" in partial:
+            turn_latencies.append(partial["eou_delay_ms"] + partial["ttft_ms"])
+            del turn_partials[sid]
+
+    async def _flush_turn_metrics():
+        if not turn_latencies or not METRICS_URL:
+            return
+        payload = {
+            "callId": ctx.room.name,
+            "turns": [{"e2eLatencyMs": ms} for ms in turn_latencies],
+        }
+        try:
+            async with httpx.AsyncClient() as client:
+                await client.post(
+                    METRICS_URL,
+                    json=payload,
+                    headers={"x-metrics-secret": CALENDAR_SECRET},
+                    timeout=10,
+                )
+        except Exception:
+            logger.exception("turn metrics flush failed")
+
+    ctx.add_shutdown_callback(_flush_turn_metrics)
 
     # Silencia o input do utilizador até a saudação terminar: ruído ambiente
     # ao ligar (clique do browser, mic a abrir) activa o VAD do Gemini antes
