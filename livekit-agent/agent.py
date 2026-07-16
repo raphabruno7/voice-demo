@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from livekit import rtc, api
 from livekit.api import TwirpError
-from livekit.agents import Agent, AgentSession, JobContext, WorkerOptions, cli, function_tool
+from livekit.agents import Agent, AgentSession, JobContext, WorkerOptions, cli, function_tool, metrics
 from livekit.plugins import google
 from google.genai import types as genai_types
 from google.protobuf.duration_pb2 import Duration
@@ -434,20 +434,32 @@ async def entrypoint(ctx: JobContext):
     state["agent"] = agent
     session = AgentSession(llm=model)
 
-    # ponytail: e2e_latency já vem calculado pela SDK (fim-da-fala-do-utilizador
-    # até início da resposta) na ChatMessage do assistente — não precisamos
-    # recompor a partir de EOUMetrics/RealtimeModelMetrics (evento deprecated
-    # nesta versão da SDK).
+    # ChatMessage.metrics["e2e_latency"] só é preenchido no pipeline STT->LLM->TTS
+    # — nunca no RealtimeModel (Gemini native audio, speech-to-speech) que este
+    # agente usa. O evento "metrics_collected" está deprecated a favor desse
+    # campo, mas continua a disparar para sessões realtime e é a única fonte
+    # real de latência aqui: end_of_utterance_delay (fim da fala do utilizador
+    # → fim de turno) + ttft (até ao primeiro áudio de resposta).
+    turn_partials: dict[str, dict[str, int]] = {}
     turn_latencies: list[int] = []
 
-    @session.on("conversation_item_added")
-    def _on_conversation_item_added(ev):
-        item = ev.item
-        if getattr(item, "role", None) != "assistant":
+    @session.on("metrics_collected")
+    def _on_metrics_collected(ev):
+        m = ev.metrics
+        sid = getattr(m, "speech_id", None)
+        if not sid:
             return
-        e2e = item.metrics.get("e2e_latency")
-        if e2e is not None:
-            turn_latencies.append(round(e2e * 1000))
+        if isinstance(m, metrics.EOUMetrics):
+            turn_partials.setdefault(sid, {})["eou_delay_ms"] = round(m.end_of_utterance_delay * 1000)
+        elif isinstance(m, metrics.RealtimeModelMetrics) and m.ttft >= 0:
+            turn_partials.setdefault(sid, {})["ttft_ms"] = round(m.ttft * 1000)
+        else:
+            return
+
+        partial = turn_partials[sid]
+        if "eou_delay_ms" in partial and "ttft_ms" in partial:
+            turn_latencies.append(partial["eou_delay_ms"] + partial["ttft_ms"])
+            del turn_partials[sid]
 
     async def _flush_turn_metrics():
         if not turn_latencies or not METRICS_URL:

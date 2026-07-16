@@ -15,9 +15,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: 'callId and turns required' }, { status: 200 });
   }
 
-  await getSupabaseAdmin()
+  const { error } = await getSupabaseAdmin()
     .from('turn_metrics')
     .insert(turns.map((t) => ({ call_id: callId, e2e_latency_ms: t.e2eLatencyMs })));
+
+  if (error) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 200 });
+  }
 
   return NextResponse.json({ success: true });
 }

@@ -66,4 +66,13 @@ describe('POST /api/livekit/metrics', () => {
       { call_id: 'room-123', e2e_latency_ms: 620 },
     ]);
   });
+
+  it('returns success:false when the insert fails', async () => {
+    insertMock.mockResolvedValueOnce({ data: null, error: { message: 'constraint violation' } });
+    const res = await POST(makeRequest(validBody));
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.success).toBe(false);
+    expect(data.error).toBe('constraint violation');
+  });
 });
