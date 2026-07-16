@@ -41,10 +41,16 @@ function percentile(sorted: number[], p: number): number {
 async function getLatencyStats(): Promise<{ p50: number; p95: number; count: number } | null> {
   const db = getSupabaseAdmin();
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  // ponytail: cap explícito para não depender do limite por omissão do
+  // PostgREST (1000 linhas) — a acontecer truncagem, é sempre nas linhas
+  // mais antigas da janela, nunca silenciosa a meio. Subir para agregação
+  // em SQL (percentile_cont) se o volume ultrapassar isto a sério.
   const { data } = await db
     .from('turn_metrics')
     .select('e2e_latency_ms')
-    .gte('created_at', since);
+    .gte('created_at', since)
+    .order('created_at', { ascending: false })
+    .limit(5000);
 
   if (!data || data.length === 0) return null;
 
