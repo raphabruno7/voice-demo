@@ -19,6 +19,10 @@ export type Dict = {
     introBefore: string;
     introAfter: string;
     cta: string;
+    selector: {
+      businessType: string;
+      all: string;
+    };
     stacks: {
       hume: { badge: string; title: string; description: string; powered: string };
       livekit: { badge: string; title: string; description: string; powered: string };
@@ -163,6 +167,10 @@ const pt: Dict = {
     introBefore: "Cada stack abaixo é uma demo a funcionar, construída por",
     introAfter: ". Escolhe a combinação que se encaixa no teu caso de uso.",
     cta: "Experimentar →",
+    selector: {
+      businessType: "Tipo de negócio",
+      all: "Todos",
+    },
     stacks: {
       hume: {
         badge: "Live Demo · Disponível Agora",
@@ -174,7 +182,7 @@ const pt: Dict = {
         badge: "Teste · Gemini Live",
         title: "Gemini Live via LiveKit",
         description: "Modelo de áudio nativo, multilíngue, candidato a telefone.",
-        powered: "Gemini 2.0 Flash · LiveKit · pt-PT",
+        powered: "Gemini 2.5 Flash · LiveKit · pt-PT",
       },
       elevenlabs: {
         badge: "Teste · ElevenLabs ConvAI",
@@ -222,7 +230,7 @@ const pt: Dict = {
     descBold: "Google Gemini Live",
     descAfter:
       "— teste de qualidade de voz e latência em browser, antes de ligar ao telefone.",
-    powered: "Tecnologia: Gemini 2.0 Flash · LiveKit · pt-PT",
+    powered: "Tecnologia: Gemini 2.5 Flash · LiveKit · pt-PT",
     back: "← Portfólio",
   },
   elevenlabs: {
@@ -340,6 +348,10 @@ const en: Dict = {
     introBefore: "Each stack below is a working demo, built by",
     introAfter: ". Pick the combination that fits your use case.",
     cta: "Try it →",
+    selector: {
+      businessType: "Business type",
+      all: "All",
+    },
     stacks: {
       hume: {
         badge: "Live Demo · Available Now",
@@ -351,7 +363,7 @@ const en: Dict = {
         badge: "Test · Gemini Live",
         title: "Gemini Live via LiveKit",
         description: "Native audio model, multilingual, phone-line candidate.",
-        powered: "Gemini 2.0 Flash · LiveKit · pt-PT",
+        powered: "Gemini 2.5 Flash · LiveKit · pt-PT",
       },
       elevenlabs: {
         badge: "Test · ElevenLabs ConvAI",
@@ -384,7 +396,7 @@ const en: Dict = {
     descBold: "Google Gemini Live",
     descAfter:
       "— test voice quality and latency in the browser, before going live on the phone.",
-    powered: "Powered by Gemini 2.0 Flash · LiveKit · pt-PT",
+    powered: "Powered by Gemini 2.5 Flash · LiveKit · pt-PT",
     back: "← Portfolio",
   },
   elevenlabs: {

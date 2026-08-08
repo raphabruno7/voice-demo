@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { getLang } from "@/lib/i18n/lang";
 import { dictionaries } from "@/lib/i18n/dictionaries";
+import NicheSelector from "@/components/NicheSelector";
+import { NICHE_KEYS, NICHES } from "@/lib/niches";
 
 export const dynamic = "force-dynamic";
 
@@ -47,9 +49,17 @@ const colorClasses: Record<
   },
 };
 
-export default async function PortfolioPage() {
+export default async function PortfolioPage({
+  searchParams,
+}: {
+  searchParams?: Record<string, string | string[] | undefined>;
+}) {
   const lang = await getLang();
   const dict = dictionaries[lang];
+
+  // Read niche from searchParams
+  const niche = searchParams?.niche ?? null;
+  const isValidNiche = niche && typeof niche === "string" ? NICHE_KEYS.includes(niche) : false;
 
   const stacks = [
     { href: "/hume", color: "emerald", ...dict.gallery.stacks.hume },
@@ -58,7 +68,10 @@ export default async function PortfolioPage() {
     { href: "/vapi", color: "sky", ...dict.gallery.stacks.vapi },
     { href: "/retell", color: "fuchsia", ...dict.gallery.stacks.retell },
     { href: "/twilio", color: "rose", ...dict.gallery.stacks.twilio },
-  ];
+  ].map(stack => ({
+    ...stack,
+    href: isValidNiche ? `${stack.href}?niche=${niche}` : stack.href,
+  }));
 
   return (
     <main className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center px-6 py-20">
@@ -87,6 +100,24 @@ export default async function PortfolioPage() {
           </a>
           {dict.gallery.introAfter}
         </p>
+
+        <div className="mt-8 mb-8">
+          <NicheSelector />
+        </div>
+
+        {isValidNiche && (
+          <div className="mb-8 text-center">
+            <Badge
+              variant="outline"
+              className="border-white/30 text-zinc-200 bg-white/10 mb-3"
+            >
+              Demo configurado para: {NICHES[niche as string].label}
+            </Badge>
+            <p className="text-sm text-zinc-400 leading-relaxed max-w-2xl mx-auto">
+              {NICHES[niche as string].pain_one_liner_pt}
+            </p>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-10">
           {stacks.map((stack) => {

@@ -5,10 +5,19 @@ import { Badge } from "@/components/ui/badge";
 import GeminiLiveWidget from "@/components/GeminiLiveWidget";
 import { getLang } from "@/lib/i18n/lang";
 import { dictionaries } from "@/lib/i18n/dictionaries";
+import { NICHES, NICHE_KEYS } from "@/lib/niches";
 
-export default async function LiveKitPage() {
+export default async function LiveKitPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ niche?: string }>;
+}) {
+  const params = await searchParams;
   const lang = await getLang();
   const dict = dictionaries[lang];
+
+  const niche = params.niche?.trim();
+  const isValidNiche = niche && NICHE_KEYS.includes(niche);
 
   return (
     <main className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center px-6 py-20">
@@ -30,11 +39,19 @@ export default async function LiveKitPage() {
           <strong className="text-white">{dict.livekit.descBold}</strong> {dict.livekit.descAfter}
         </p>
 
+        {isValidNiche && (
+          <div className="mt-4 text-center">
+            <p className="text-sm border border-zinc-600/40 text-zinc-400 rounded-lg px-3 py-2 inline-block">
+              Para: <strong>{NICHES[niche].label}</strong> · {NICHES[niche].pain_one_liner_pt}
+            </p>
+          </div>
+        )}
+
         <p className="mt-4 text-zinc-500 text-sm">
           {dict.livekit.powered}
         </p>
 
-        <GeminiLiveWidget dict={{ common: dict.widgets.common, livekit: dict.widgets.livekit }} />
+        <GeminiLiveWidget niche={isValidNiche ? niche : undefined} dict={{ common: dict.widgets.common, livekit: dict.widgets.livekit }} />
 
         <div className="mt-16 border-t border-white/10 pt-8 flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-zinc-500">
           <Link href="/" className="hover:text-zinc-300 transition-colors">

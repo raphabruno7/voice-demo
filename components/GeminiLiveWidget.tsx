@@ -84,7 +84,7 @@ function VoiceControls({ onDisconnect, dict }: { onDisconnect: () => void; dict:
   );
 }
 
-export default function GeminiLiveWidget({ dict }: { dict: LiveKitDict }) {
+export default function GeminiLiveWidget({ dict, niche }: { dict: LiveKitDict; niche?: string }) {
   const [connectionDetails, setConnectionDetails] = useState<{ token: string; url: string } | null>(null);
   const [connecting, setConnecting] = useState(false);
 
@@ -92,10 +92,12 @@ export default function GeminiLiveWidget({ dict }: { dict: LiveKitDict }) {
     setConnecting(true);
     try {
       const leadPhone = new URLSearchParams(window.location.search).get("leadPhone") ?? undefined;
+      const urlNiche = new URLSearchParams(window.location.search).get("niche") ?? undefined;
+      const resolvedNiche = niche ?? urlNiche;
       const res = await fetch(`${BASE_PATH}/api/livekit/token`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ participantName: "tester", leadPhone }),
+        body: JSON.stringify({ participantName: "tester", leadPhone, niche: resolvedNiche }),
       });
       if (!res.ok) throw new Error("Token error");
       const { token, url } = await res.json();

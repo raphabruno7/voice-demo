@@ -1,0 +1,19 @@
+# fly.toml app configuration for livekit-agent
+app = "voice-demo-livekit-agent"
+primary_region = "cdg"
+
+[build]
+dockerfile = "Dockerfile"
+
+[[vm]]
+memory = "512mb"
+cpu_kind = "shared"
+cpus = 1
+
+[env]
+LIVEKIT_URL = "wss://voice-agent-hfi9y0b7.livekit.cloud"
+CALENDAR_ENDPOINT = "https://voice-demo-navy.vercel.app/ai-agent-voice/api/book-meeting"
+TRANSFER_FALLBACK_ENDPOINT = "https://voice-demo-navy.vercel.app/ai-agent-voice/api/transfer-fallback"
+TRANSFER_TO_NUMBER = "+351931822816"
+TRANSFER_RING_TIMEOUT_S = "20"
+TRANSFER_CALLER_ID_NAME = "24/7 Voice Agent - Demo"
