@@ -102,7 +102,11 @@ twilio-agent/                       # Node.js, ConversationRelay — Railway
 
 **Hume config** — API PUT-style: sempre enviar payload completo. `interruption` e `speech_detection_threshold` só editáveis pela UI. Ver [docs/providers.md](docs/providers.md).
 
-**Gemini Live** — não definir `language=` no `RealtimeModel` (`gemini-2.5-flash-native-audio-latest` rejeita `"pt-PT"` com APIError 1007). Confiar no system prompt.
+**Gemini Live** — não definir `language=` no `RealtimeModel` (rejeita `"pt-PT"` com APIError 1007). Confiar no system prompt.
+
+**Nunca o alias `-latest`** — `gemini-*-latest` troca de modelo por baixo sem aviso; comportamento, prosódia e latência mudam sem um commit que o explique. O modelo é uma versão fixa em `GEMINI_REALTIME_MODEL`. `livekit-agent/test_config.py` falha se o alias voltar.
+
+**Latência por turno** — mais de metade da espera percebida era `silence_duration_ms`, não o modelo: é silêncio exigido *antes* de o modelo saber que é a sua vez. Afina-se com `VAD_SILENCE_MS` contra os p50/p95 reais em `turn_metrics` (`/status`), sem deploy de código. Compromisso directo: descer demais volta a cortar frases a meio (foi o que o PR #15 corrigiu).
 
 **Vapi NEXT_PUBLIC vars** — `NEXT_PUBLIC_VAPI_*` só ficam inline num build via Git push para `main`. `vercel --prod` CLI de branch `feat/*` quebra rotas raiz — nunca usar.
 
@@ -137,6 +141,8 @@ twilio-agent/                       # Node.js, ConversationRelay — Railway
 | `OUTBOUND_TRUNK_ID` / `TRANSFER_RING_TIMEOUT_S` / `TRANSFER_CALLER_ID_NAME` | Python agent — attended SIP transfer |
 | `ARCUS_SUPABASE_URL` / `ARCUS_SUPABASE_KEY` / `ARCUS_ORG_ID` | Python agent — Arcus CRM |
 | `METRICS_ENDPOINT` | Python agent — POST de latência por turno para `/api/livekit/metrics` (reutiliza `WEBHOOK_SECRET` como `x-metrics-secret`) |
+| `GEMINI_REALTIME_MODEL` | Python agent — modelo realtime. Default `gemini-2.5-flash-native-audio-preview-12-2025` (versão fixa). Para avaliar o 3.1: `gemini-3.1-flash-live-preview` |
+| `VAD_SILENCE_MS` | Python agent — silêncio para declarar fim de fala. Default `400`. Entra em **todos** os turnos: subir reduz cortes a meio da frase, descer reduz latência percebida |
 
 > ⚠️ **`GEMINI_API_KEY` vive em 4 sítios** (ver acima) — se rodares a key (ex: projecto GCP suspenso por billing), actualiza todos ou o `/livekit` fica com áudio em silêncio mesmo que o health check dê `ok`. O serviço Railway `voice-demo` (dentro do projecto `balanced-appreciation`) só aplica a variável nova depois de um **Deploy manual** — mudar o valor não reinicia o processo sozinho.
 
@@ -177,6 +183,8 @@ twilio-agent/                       # Node.js, ConversationRelay — Railway
 
 Ver fluxo completo: [docs/outbound-calls.md](docs/outbound-calls.md)
 
+> ⚠️ **Qualquer POST interno TEM de terminar em `/`** — não são só os crons. O `METRICS_ENDPOINT` do agente Python esteve apontado a um URL sem barra: o Next devolvia 308, o `httpx` não segue redirects por omissão, e um 308 não levanta excepção — as métricas de latência desapareciam sem deixar rasto desde o PR #16. O `agent.py` normaliza a barra e usa `follow_redirects=True`; `test_config.py` protege ambos.
+>
 > ⚠️ **Crons no `vercel.json` TÊM de terminar em `/`** — `next.config.ts` tem `trailingSlash: true`, por isso um path sem barra dá 308 e o Vercel Cron (que não segue redirects) nunca corre o handler. Ao adicionar um cron novo, mete a barra final.
 
 ### Health Check & Admin
@@ -190,10 +198,14 @@ Ver fluxo completo: [docs/outbound-calls.md](docs/outbound-calls.md)
 
 ## Database
 
+> ⚠️ **O projecto Supabase de produção é `snczwotnbasmetvuthic`** e **não é acessível** pela conta que está autenticada no Supabase CLI (`raphaelbruno.dev@gmail.com`, org "Raphael Bruno") — `supabase link` devolve *"account does not have the necessary privileges"*. O `supabase/.temp/project-ref` local aponta para **outro** projecto (`jgvyooztatfgnxtqbluy`). Antes de aplicar qualquer migração, confirma o ref no painel: correr DDL no projecto errado cria tabelas que a app nunca lê.
+>
+> ℹ️ **`vercel env pull` devolve as variáveis *Encrypted* com valor vazio.** Um valor vazio no ficheiro puxado **não** significa que a variável esteja vazia em produção — todas as chaves Supabase estão marcadas Encrypted. Não tirar conclusões de saúde a partir do ficheiro puxado.
+
 - **`calls`** — RLS, public SELECT, writes via service_role. `supabase/migrations/001_calls.sql`
-- **`outbound_appointments`** — RLS, **sem** public SELECT (PII). `003_outbound_appointments.sql`. Estados: `pending → called → confirmed / rescheduled / cancelled / no_answer / failed / opted_out`
+- **`outbound_appointments`** — RLS, **sem** public SELECT (PII). `003_outbound_appointments.sql`. Estados: `pending → called → confirmed / rescheduled / cancelled / no_answer / failed / opted_out`. ⚠️ **Migração NÃO aplicada** (verificado 2026-09-04: a tabela não existe em produção). O cron diário de outbound às 09:30 UTC não tem onde escrever.
 - **`health_checks`** — RLS, service_role only. `004_health_checks.sql`. Colunas: `id, checked_at, service, status (ok|degraded|fail), latency_ms, error_msg`. Retenção 30 dias (limpo pelo cron). ✅ Migração aplicada. Cron a correr — 10/10 serviços ok.
-- **`turn_metrics`** — RLS, service_role only. `005_turn_metrics.sql`. Colunas: `id, call_id, e2e_latency_ms, created_at`. Latência por turno do LiveKit (fim-da-fala-do-utilizador → 1ª resposta do agente), enviada pelo `livekit-agent/agent.py` via `POST /api/livekit/metrics`. p50/p95 dos últimos 7 dias no `/status`.
+- **`turn_metrics`** — RLS, service_role only. `005_turn_metrics.sql`. Colunas: `id, call_id, e2e_latency_ms, created_at`. Latência por turno do LiveKit (fim-da-fala-do-utilizador → 1ª resposta do agente), enviada pelo `livekit-agent/agent.py` via `POST /api/livekit/metrics`. p50/p95 dos últimos 7 dias no `/status`. ✅ Migração aplicada 2026-09-04 — tinha ficado por aplicar desde o PR #16, e o POST de métricas falhava em silêncio. Tabela ainda a encher.
 
 ## Deploy
 
@@ -219,11 +231,10 @@ Commit style: feat(livekit): ... / fix(retell): ... / docs(claude): ...
 
 | # | Item | Estado | Bloqueado em |
 |---|---|---|---|
-| 1 | **PR #17 — palco `/livekit`** | 🟡 Aberto, build passa | Verificação numa chamada real (orb a reagir + bolhas do utilizador). Ver [docs/handoff-2026-09-04.md](docs/handoff-2026-09-04.md) |
-| 2 | **PSTN real** | 🟡 Código pronto | Número Twilio ou DIDWW +351 para LiveKit SIP. WebRTC browser funciona sem número. Ver [docs/providers.md](docs/providers.md) |
-| 3 | **Gap #2 — harness de avaliação de conversa** | 🔴 Por começar | Nada. Ver [docs/gaps-analysis-2026-07-16.md](docs/gaps-analysis-2026-07-16.md) |
-| 4 | **Gap #4 — observabilidade profunda** | 🔴 Por começar | Nada |
-| 5 | **Marketing** | 🟡 Em curso | Vídeos "The Portfolio", "The Multilingual Customer", "Features showcase". Veo 3.1 via `GEMINI_API_KEY` validado |
-| 6 | **`AgentNav` transborda** em ecrãs estreitos | 🔴 Por corrigir | Nada. Pré-existente, afecta as 6 páginas |
+| 1 | **PSTN real** | 🟡 Código pronto | Número Twilio ou DIDWW +351 para LiveKit SIP. WebRTC browser funciona sem número. Ver [docs/providers.md](docs/providers.md) |
+| 2 | **Gap #2 — harness de avaliação de conversa** | 🔴 Por começar | Nada. Ver [docs/gaps-analysis-2026-07-16.md](docs/gaps-analysis-2026-07-16.md) |
+| 3 | **Gap #4 — observabilidade profunda** | 🔴 Por começar | Nada |
+| 4 | **Marketing** | 🟡 Em curso | Vídeos "The Portfolio", "The Multilingual Customer", "Features showcase". Veo 3.1 via `GEMINI_API_KEY` validado |
+| 5 | **`AgentNav` transborda** em ecrãs estreitos | 🔴 Por corrigir | Nada. Pré-existente, afecta as 6 páginas |
 
-Gap #1 (latência real por turno) fechado no PR #16.
+Gap #1 (latência real por turno) fechado no PR #16. Palco `/livekit` fechado no PR #17.
