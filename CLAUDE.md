@@ -3,7 +3,7 @@
 # voice-demo
 
 > **Estado:** 🟢 Vivo — referência principal do projecto, sempre actualizada.
-> **Actualizado:** 2026-09-04 · **Branch activa:** `feat/livekit-voice-stage` (PR #17, por fechar)
+> **Actualizado:** 2026-09-04
 > **Âmbito:** arquitectura, provedores, env vars, padrões e regras do repo.
 > **Handoff da última sessão:** [docs/handoff-2026-09-04.md](docs/handoff-2026-09-04.md)
 
