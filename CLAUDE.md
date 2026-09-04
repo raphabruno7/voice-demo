@@ -219,11 +219,10 @@ Commit style: feat(livekit): ... / fix(retell): ... / docs(claude): ...
 
 | # | Item | Estado | Bloqueado em |
 |---|---|---|---|
-| 1 | **PR #17 — palco `/livekit`** | 🟡 Aberto, build passa | Verificação numa chamada real (orb a reagir + bolhas do utilizador). Ver [docs/handoff-2026-09-04.md](docs/handoff-2026-09-04.md) |
-| 2 | **PSTN real** | 🟡 Código pronto | Número Twilio ou DIDWW +351 para LiveKit SIP. WebRTC browser funciona sem número. Ver [docs/providers.md](docs/providers.md) |
-| 3 | **Gap #2 — harness de avaliação de conversa** | 🔴 Por começar | Nada. Ver [docs/gaps-analysis-2026-07-16.md](docs/gaps-analysis-2026-07-16.md) |
-| 4 | **Gap #4 — observabilidade profunda** | 🔴 Por começar | Nada |
-| 5 | **Marketing** | 🟡 Em curso | Vídeos "The Portfolio", "The Multilingual Customer", "Features showcase". Veo 3.1 via `GEMINI_API_KEY` validado |
-| 6 | **`AgentNav` transborda** em ecrãs estreitos | 🔴 Por corrigir | Nada. Pré-existente, afecta as 6 páginas |
+| 1 | **PSTN real** | 🟡 Código pronto | Número Twilio ou DIDWW +351 para LiveKit SIP. WebRTC browser funciona sem número. Ver [docs/providers.md](docs/providers.md) |
+| 2 | **Gap #2 — harness de avaliação de conversa** | 🔴 Por começar | Nada. Ver [docs/gaps-analysis-2026-07-16.md](docs/gaps-analysis-2026-07-16.md) |
+| 3 | **Gap #4 — observabilidade profunda** | 🔴 Por começar | Nada |
+| 4 | **Marketing** | 🟡 Em curso | Vídeos "The Portfolio", "The Multilingual Customer", "Features showcase". Veo 3.1 via `GEMINI_API_KEY` validado |
+| 5 | **`AgentNav` transborda** em ecrãs estreitos | 🔴 Por corrigir | Nada. Pré-existente, afecta as 6 páginas |
 
-Gap #1 (latência real por turno) fechado no PR #16.
+Gap #1 (latência real por turno) fechado no PR #16. Palco `/livekit` fechado no PR #17.
