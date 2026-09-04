@@ -31,7 +31,13 @@ SYSTEM_PROMPT = Path(__file__).parent.joinpath("system-prompt.txt").read_text()
 CONFIRMATION_PROMPT_TEMPLATE = Path(__file__).parent.joinpath("system-prompt-confirmation.txt").read_text()
 CALENDAR_URL = os.environ.get("CALENDAR_ENDPOINT", "")
 CALENDAR_SECRET = os.environ.get("WEBHOOK_SECRET", "")
-METRICS_URL = os.environ.get("METRICS_ENDPOINT", "")
+_metrics_raw = os.environ.get("METRICS_ENDPOINT", "")
+# O site corre com trailingSlash=true: sem a barra final o POST leva 308 e, como
+# o httpx não segue redirects por omissão, some sem erro. Normalizar aqui evita
+# depender de quem configura a variável se lembrar da barra.
+METRICS_URL = (
+    _metrics_raw if not _metrics_raw or _metrics_raw.endswith("/") else _metrics_raw + "/"
+)
 
 # Versão explícita, não o alias "-latest" (que muda de modelo sem aviso).
 # Para avaliar o 3.1: GEMINI_REALTIME_MODEL=gemini-3.1-flash-live-preview
@@ -486,12 +492,25 @@ async def entrypoint(ctx: JobContext):
         }
         try:
             async with httpx.AsyncClient() as client:
-                await client.post(
+                # follow_redirects: o site tem trailingSlash=true, portanto um URL
+                # sem barra final devolve 308. O httpx não segue redirects por
+                # omissão e um 308 não levanta excepção — o POST desaparecia sem
+                # deixar rasto. _metrics_url() já normaliza a barra; isto é a
+                # segunda rede, para o dia em que alguém aponte a variável a outro
+                # host que redireccione.
+                r = await client.post(
                     METRICS_URL,
                     json=payload,
                     headers={"x-metrics-secret": CALENDAR_SECRET},
                     timeout=10,
+                    follow_redirects=True,
                 )
+            if r.status_code != 200:
+                logger.warning(
+                    "turn metrics rejeitadas: HTTP %s %s", r.status_code, r.text[:200]
+                )
+            else:
+                logger.info("turn metrics enviadas: %d turnos", len(turn_latencies))
         except Exception:
             logger.exception("turn metrics flush failed")
 

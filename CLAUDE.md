@@ -183,6 +183,8 @@ twilio-agent/                       # Node.js, ConversationRelay — Railway
 
 Ver fluxo completo: [docs/outbound-calls.md](docs/outbound-calls.md)
 
+> ⚠️ **Qualquer POST interno TEM de terminar em `/`** — não são só os crons. O `METRICS_ENDPOINT` do agente Python esteve apontado a um URL sem barra: o Next devolvia 308, o `httpx` não segue redirects por omissão, e um 308 não levanta excepção — as métricas de latência desapareciam sem deixar rasto desde o PR #16. O `agent.py` normaliza a barra e usa `follow_redirects=True`; `test_config.py` protege ambos.
+>
 > ⚠️ **Crons no `vercel.json` TÊM de terminar em `/`** — `next.config.ts` tem `trailingSlash: true`, por isso um path sem barra dá 308 e o Vercel Cron (que não segue redirects) nunca corre o handler. Ao adicionar um cron novo, mete a barra final.
 
 ### Health Check & Admin

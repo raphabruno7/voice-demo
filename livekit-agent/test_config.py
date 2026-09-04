@@ -65,6 +65,22 @@ def check_tools_still_documented():
         assert tool in PROMPT, f"{tool} deixou de estar documentado no prompt"
 
 
+def check_metrics_url_gets_trailing_slash():
+    """O site corre com trailingSlash=true: um POST sem barra final leva 308,
+    e o httpx não segue redirects por omissão — a métrica sumia sem erro.
+    Foi por isto que turn_metrics esteve a zero desde o PR #16."""
+    assert 'endswith("/")' in SRC, "a normalização da barra final desapareceu"
+    assert "follow_redirects=True" in SRC, "o POST das métricas deixou de seguir redirects"
+
+    # o comportamento em si, sem importar o módulo (que exige env vars)
+    def normaliza(raw):
+        return raw if not raw or raw.endswith("/") else raw + "/"
+
+    assert normaliza("https://x/api/livekit/metrics") == "https://x/api/livekit/metrics/"
+    assert normaliza("https://x/api/livekit/metrics/") == "https://x/api/livekit/metrics/"
+    assert normaliza("") == ""
+
+
 def check_prompt_stays_lean():
     """Cada palavra aqui é reenviada em todos os turnos e paga-se em TTFT.
     1873 tokens era o ponto de partida; 1067 o resultado da reescrita."""
