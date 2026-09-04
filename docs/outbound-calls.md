@@ -1,6 +1,9 @@
 # Outbound — confirmação/remarcação/cancelamento de marcações
 
-**Estado:** código completo, `CRON_SECRET` em Vercel Production. À espera de número +351 + `OUTBOUND_TRUNK_ID` para activação real.
+> **Estado:** 🟡 Código completo, **não activado** — falta número +351 e `OUTBOUND_TRUNK_ID`.
+> **Actualizado:** 2026-09-04 · **Âmbito:** fluxo de chamadas outbound (confirmação/remarcação/cancelamento).
+
+`CRON_SECRET` já está em Vercel Production.
 
 ## Fluxo
 

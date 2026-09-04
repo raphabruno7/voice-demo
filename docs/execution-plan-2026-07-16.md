@@ -1,5 +1,8 @@
 # Plano de execução — corrigir os gaps do voice-demo
 
+> **Estado:** 🟢 Vivo — plano de execução dos gaps. Gap #1 executado (PR #16); passos #2-#4 por fazer.
+> **Actualizado:** 2026-09-04 · **Âmbito:** o *como*, verificado contra o código. O *porquê* está em [gaps-analysis-2026-07-16.md](gaps-analysis-2026-07-16.md).
+
 > **Para o agente que vai executar:** este é o *como*, verificado contra o código e a SDK instalada.
 > Companheiro de `docs/gaps-analysis-2026-07-16.md` (o *o quê* e *porquê*). Faz **um gap por PR**,
 > pela sequência recomendada no fim. Lê "Regras do repo" antes de tocar em código.
