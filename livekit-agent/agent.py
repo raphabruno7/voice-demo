@@ -39,10 +39,15 @@ METRICS_URL = (
     _metrics_raw if not _metrics_raw or _metrics_raw.endswith("/") else _metrics_raw + "/"
 )
 
-# Versão explícita, não o alias "-latest" (que muda de modelo sem aviso).
-# Para avaliar o 3.1: GEMINI_REALTIME_MODEL=gemini-3.1-flash-live-preview
+# REVERTIDO 2026-09-04: fixar o preview-12-2025 partiu as sessões em produção
+# com "APIError 1007: The audio content type (CONTENT_TYPE_AUDIO) is not
+# supported for this model configuration" — essa versão rejeita a config de
+# áudio que enviamos aqui. O -latest aceita-a e é o que corre há meses.
+# O alias continua a ser um risco (troca de modelo sem aviso), mas um risco é
+# melhor que uma demo partida. Fixar noutra versão exige testar qual aceita
+# esta config, com uma chamada real — não se resolve à distância.
 GEMINI_REALTIME_MODEL = os.environ.get(
-    "GEMINI_REALTIME_MODEL", "gemini-2.5-flash-native-audio-preview-12-2025"
+    "GEMINI_REALTIME_MODEL", "gemini-2.5-flash-native-audio-latest"
 )
 # Silêncio exigido para declarar fim de fala. Entra em todos os turnos.
 VAD_SILENCE_MS = int(os.environ.get("VAD_SILENCE_MS", "400"))

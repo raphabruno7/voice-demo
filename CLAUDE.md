@@ -104,7 +104,9 @@ twilio-agent/                       # Node.js, ConversationRelay — Railway
 
 **Gemini Live** — não definir `language=` no `RealtimeModel` (rejeita `"pt-PT"` com APIError 1007). Confiar no system prompt.
 
-**Nunca o alias `-latest`** — `gemini-*-latest` troca de modelo por baixo sem aviso; comportamento, prosódia e latência mudam sem um commit que o explique. O modelo é uma versão fixa em `GEMINI_REALTIME_MODEL`. `livekit-agent/test_config.py` falha se o alias voltar.
+**Modelo realtime — o `-latest` é o único valor verificado** ⚠️ Tentou-se fixar `gemini-2.5-flash-native-audio-preview-12-2025` (2026-09-04) e **as sessões morreram em produção**: `APIError 1007 — The audio content type (CONTENT_TYPE_AUDIO) is not supported for this model configuration`, seguido de `AgentSession is closing due to unrecoverable error`. Essa versão rejeita a config de áudio que o `agent.py` envia. Revertido para `gemini-2.5-flash-native-audio-latest`.
+
+O alias continua a ser um risco real (troca de modelo sem aviso, e leva prosódia e latência com ele), mas fixar uma versão **exige testar cada candidata numa chamada a sério** — não se decide pela lista de modelos da API. `GEMINI_REALTIME_MODEL` existe para essa experiência.
 
 **Latência por turno** — mais de metade da espera percebida era `silence_duration_ms`, não o modelo: é silêncio exigido *antes* de o modelo saber que é a sua vez. Afina-se com `VAD_SILENCE_MS` contra os p50/p95 reais em `turn_metrics` (`/status`), sem deploy de código. Compromisso directo: descer demais volta a cortar frases a meio (foi o que o PR #15 corrigiu).
 

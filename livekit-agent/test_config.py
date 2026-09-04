@@ -14,19 +14,22 @@ SRC = (HERE / "agent.py").read_text()
 PROMPT = (HERE / "system-prompt.txt").read_text()
 
 
-def check_model_is_pinned():
-    """O alias -latest troca de modelo sem aviso: a demo tem de soar igual
-    entre duas apresentações."""
+def check_model_is_configurable():
+    """O modelo tem de continuar a sair para env var, para se poder trocar sem
+    deploy de código.
+
+    Nota: NÃO exigimos versão fixa. Tentou-se fixar o preview-12-2025 e as
+    sessões morreram em produção com APIError 1007 ("audio content type not
+    supported for this model configuration"). O alias -latest é o único valor
+    verificado a funcionar com esta config. Fixar noutra versão exige testar
+    cada candidata numa chamada real."""
     default = re.search(
         r'GEMINI_REALTIME_MODEL\s*=\s*os\.environ\.get\(\s*\n?\s*"GEMINI_REALTIME_MODEL",\s*"([^"]+)"',
         SRC,
     )
     assert default, "GEMINI_REALTIME_MODEL desapareceu do agent.py"
-    assert not default.group(1).endswith("-latest"), (
-        f"modelo por omissão voltou a ser um alias móvel: {default.group(1)}"
-    )
-    assert "gemini-2.5-flash-native-audio-latest" not in SRC, (
-        "o alias -latest está outra vez escrito no código"
+    assert "model=GEMINI_REALTIME_MODEL" in SRC, (
+        "o modelo voltou a estar fixo no RealtimeModel em vez de vir da env var"
     )
 
 
