@@ -198,12 +198,12 @@ Ver fluxo completo: [docs/outbound-calls.md](docs/outbound-calls.md)
 
 > ⚠️ **O projecto Supabase de produção é `snczwotnbasmetvuthic`** e **não é acessível** pela conta que está autenticada no Supabase CLI (`raphaelbruno.dev@gmail.com`, org "Raphael Bruno") — `supabase link` devolve *"account does not have the necessary privileges"*. O `supabase/.temp/project-ref` local aponta para **outro** projecto (`jgvyooztatfgnxtqbluy`). Antes de aplicar qualquer migração, confirma o ref no painel: correr DDL no projecto errado cria tabelas que a app nunca lê.
 >
-> ⚠️ **`SUPABASE_SERVICE_ROLE_KEY` está vazia em Vercel Production** (verificado 2026-09-04). `getSupabaseAdmin()` depende dela, logo tudo o que escreve por service_role falha: métricas de latência, cron de health checks e as leituras do `/status`. Sintoma coerente: a última linha em `calls` é de 2026-05-01.
+> ℹ️ **`vercel env pull` devolve as variáveis *Encrypted* com valor vazio.** Um valor vazio no ficheiro puxado **não** significa que a variável esteja vazia em produção — todas as chaves Supabase estão marcadas Encrypted. Não tirar conclusões de saúde a partir do ficheiro puxado.
 
 - **`calls`** — RLS, public SELECT, writes via service_role. `supabase/migrations/001_calls.sql`
-- **`outbound_appointments`** — RLS, **sem** public SELECT (PII). `003_outbound_appointments.sql`. Estados: `pending → called → confirmed / rescheduled / cancelled / no_answer / failed / opted_out`
+- **`outbound_appointments`** — RLS, **sem** public SELECT (PII). `003_outbound_appointments.sql`. Estados: `pending → called → confirmed / rescheduled / cancelled / no_answer / failed / opted_out`. ⚠️ **Migração NÃO aplicada** (verificado 2026-09-04: a tabela não existe em produção). O cron diário de outbound às 09:30 UTC não tem onde escrever.
 - **`health_checks`** — RLS, service_role only. `004_health_checks.sql`. Colunas: `id, checked_at, service, status (ok|degraded|fail), latency_ms, error_msg`. Retenção 30 dias (limpo pelo cron). ✅ Migração aplicada. Cron a correr — 10/10 serviços ok.
-- **`turn_metrics`** — RLS, service_role only. `005_turn_metrics.sql`. Colunas: `id, call_id, e2e_latency_ms, created_at`. Latência por turno do LiveKit (fim-da-fala-do-utilizador → 1ª resposta do agente), enviada pelo `livekit-agent/agent.py` via `POST /api/livekit/metrics`. p50/p95 dos últimos 7 dias no `/status`. ⚠️ **Migração NÃO aplicada** (verificado 2026-09-04: a API devolve `PGRST205 Could not find the table`). Nunca se registou um turno; o POST falha em silêncio.
+- **`turn_metrics`** — RLS, service_role only. `005_turn_metrics.sql`. Colunas: `id, call_id, e2e_latency_ms, created_at`. Latência por turno do LiveKit (fim-da-fala-do-utilizador → 1ª resposta do agente), enviada pelo `livekit-agent/agent.py` via `POST /api/livekit/metrics`. p50/p95 dos últimos 7 dias no `/status`. ✅ Migração aplicada 2026-09-04 — tinha ficado por aplicar desde o PR #16, e o POST de métricas falhava em silêncio. Tabela ainda a encher.
 
 ## Deploy
 
