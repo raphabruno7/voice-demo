@@ -102,7 +102,11 @@ twilio-agent/                       # Node.js, ConversationRelay — Railway
 
 **Hume config** — API PUT-style: sempre enviar payload completo. `interruption` e `speech_detection_threshold` só editáveis pela UI. Ver [docs/providers.md](docs/providers.md).
 
-**Gemini Live** — não definir `language=` no `RealtimeModel` (`gemini-2.5-flash-native-audio-latest` rejeita `"pt-PT"` com APIError 1007). Confiar no system prompt.
+**Gemini Live** — não definir `language=` no `RealtimeModel` (rejeita `"pt-PT"` com APIError 1007). Confiar no system prompt.
+
+**Nunca o alias `-latest`** — `gemini-*-latest` troca de modelo por baixo sem aviso; comportamento, prosódia e latência mudam sem um commit que o explique. O modelo é uma versão fixa em `GEMINI_REALTIME_MODEL`. `livekit-agent/test_config.py` falha se o alias voltar.
+
+**Latência por turno** — mais de metade da espera percebida era `silence_duration_ms`, não o modelo: é silêncio exigido *antes* de o modelo saber que é a sua vez. Afina-se com `VAD_SILENCE_MS` contra os p50/p95 reais em `turn_metrics` (`/status`), sem deploy de código. Compromisso directo: descer demais volta a cortar frases a meio (foi o que o PR #15 corrigiu).
 
 **Vapi NEXT_PUBLIC vars** — `NEXT_PUBLIC_VAPI_*` só ficam inline num build via Git push para `main`. `vercel --prod` CLI de branch `feat/*` quebra rotas raiz — nunca usar.
 
@@ -137,6 +141,8 @@ twilio-agent/                       # Node.js, ConversationRelay — Railway
 | `OUTBOUND_TRUNK_ID` / `TRANSFER_RING_TIMEOUT_S` / `TRANSFER_CALLER_ID_NAME` | Python agent — attended SIP transfer |
 | `ARCUS_SUPABASE_URL` / `ARCUS_SUPABASE_KEY` / `ARCUS_ORG_ID` | Python agent — Arcus CRM |
 | `METRICS_ENDPOINT` | Python agent — POST de latência por turno para `/api/livekit/metrics` (reutiliza `WEBHOOK_SECRET` como `x-metrics-secret`) |
+| `GEMINI_REALTIME_MODEL` | Python agent — modelo realtime. Default `gemini-2.5-flash-native-audio-preview-12-2025` (versão fixa). Para avaliar o 3.1: `gemini-3.1-flash-live-preview` |
+| `VAD_SILENCE_MS` | Python agent — silêncio para declarar fim de fala. Default `400`. Entra em **todos** os turnos: subir reduz cortes a meio da frase, descer reduz latência percebida |
 
 > ⚠️ **`GEMINI_API_KEY` vive em 4 sítios** (ver acima) — se rodares a key (ex: projecto GCP suspenso por billing), actualiza todos ou o `/livekit` fica com áudio em silêncio mesmo que o health check dê `ok`. O serviço Railway `voice-demo` (dentro do projecto `balanced-appreciation`) só aplica a variável nova depois de um **Deploy manual** — mudar o valor não reinicia o processo sozinho.
 

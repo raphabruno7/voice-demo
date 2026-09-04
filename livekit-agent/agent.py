@@ -32,6 +32,14 @@ CONFIRMATION_PROMPT_TEMPLATE = Path(__file__).parent.joinpath("system-prompt-con
 CALENDAR_URL = os.environ.get("CALENDAR_ENDPOINT", "")
 CALENDAR_SECRET = os.environ.get("WEBHOOK_SECRET", "")
 METRICS_URL = os.environ.get("METRICS_ENDPOINT", "")
+
+# Versão explícita, não o alias "-latest" (que muda de modelo sem aviso).
+# Para avaliar o 3.1: GEMINI_REALTIME_MODEL=gemini-3.1-flash-live-preview
+GEMINI_REALTIME_MODEL = os.environ.get(
+    "GEMINI_REALTIME_MODEL", "gemini-2.5-flash-native-audio-preview-12-2025"
+)
+# Silêncio exigido para declarar fim de fala. Entra em todos os turnos.
+VAD_SILENCE_MS = int(os.environ.get("VAD_SILENCE_MS", "400"))
 TRANSFER_TO_NUMBER = os.environ.get("TRANSFER_TO_NUMBER", "+351931822816")
 TRANSFER_FALLBACK_URL = os.environ.get("TRANSFER_FALLBACK_ENDPOINT")
 
@@ -410,7 +418,10 @@ async def entrypoint(ctx: JobContext):
             )
 
     model = google.beta.realtime.RealtimeModel(
-        model="gemini-2.5-flash-native-audio-latest",
+        # Versão fixa, nunca o alias "-latest": o alias muda de modelo debaixo dos pés
+        # sem aviso, e esta demo tem de soar igual entre duas apresentações. Para
+        # experimentar o gemini-3.1-flash-live-preview basta GEMINI_REALTIME_MODEL.
+        model=GEMINI_REALTIME_MODEL,
         voice="Aoede",
         api_key=os.environ["GEMINI_API_KEY"],
         instructions=instructions,
@@ -421,7 +432,12 @@ async def entrypoint(ctx: JobContext):
                 # cortava a fala do utilizador em qualquer pausa breve, produzindo áudio
                 # truncado que o Gemini genuinamente não percebia ("não te ouvi bem").
                 end_of_speech_sensitivity=genai_types.EndSensitivity.END_SENSITIVITY_LOW,
-                silence_duration_ms=600,
+                # Esta espera entra em TODOS os turnos e era mais de metade da latência
+                # percebida (600ms de silêncio antes de o modelo saber que é a sua vez).
+                # Compromisso directo: baixar demais volta a cortar frases a meio, que foi
+                # o que o PR #15 corrigiu ao subir para 600. Configurável para se afinar
+                # contra os p50/p95 reais em turn_metrics sem novo deploy de código.
+                silence_duration_ms=VAD_SILENCE_MS,
                 prefix_padding_ms=200,
             )
         ),
