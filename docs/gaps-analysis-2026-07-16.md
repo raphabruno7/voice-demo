@@ -1,5 +1,8 @@
 # Análise de gaps — voice-demo (2026-07-16)
 
+> **Estado:** 🟢 Vivo — mapa de gaps do projecto. Gap #1 fechado (PR #16); #2, #3, #4 abertos.
+> **Actualizado:** 2026-09-04 · **Âmbito:** o *quê* e o *porquê*. O *como* está em [execution-plan-2026-07-16.md](execution-plan-2026-07-16.md).
+
 > **Para o agente que vai executar:** este documento é um handoff accionável. Cada gap tem
 > estado, **evidência** (ficheiros reais), uma **abordagem sugerida** e esforço estimado. Lê a
 > secção "Regras do repo" no fim antes de tocar em código. Escolhe **um** gap, não tentes todos.

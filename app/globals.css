@@ -117,6 +117,60 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+@keyframes orb-morph {
+  0%,
+  100% {
+    border-radius: 60% 40% 55% 45% / 45% 55% 40% 60%;
+    transform: rotate(0deg);
+  }
+  33% {
+    border-radius: 45% 55% 40% 60% / 55% 45% 60% 40%;
+    transform: rotate(120deg);
+  }
+  66% {
+    border-radius: 55% 45% 60% 40% / 40% 60% 45% 55%;
+    transform: rotate(240deg);
+  }
+}
+
+@keyframes bg-drift-a {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(8%, 6%, 0) scale(1.15);
+  }
+}
+
+@keyframes bg-drift-b {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1.1);
+  }
+  50% {
+    transform: translate3d(-10%, -8%, 0) scale(0.95);
+  }
+}
+
+.orb-blob {
+  animation: orb-morph 18s ease-in-out infinite;
+}
+.bg-blob-a {
+  animation: bg-drift-a 26s ease-in-out infinite;
+}
+.bg-blob-b {
+  animation: bg-drift-b 30s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orb-blob,
+  .bg-blob-a,
+  .bg-blob-b {
+    animation: none !important;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

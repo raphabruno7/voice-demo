@@ -1,5 +1,8 @@
 # Providers — referência operacional
 
+> **Estado:** 🟢 Vivo — referência operacional dos 6 provedores. Todos activos.
+> **Actualizado:** 2026-09-04 · **Âmbito:** config, IDs e chaves de cada provedor.
+
 ## Hume EVI
 
 - **Config ID:** `7fd9f653-21d8-42db-b3df-c287d5899ec2` (v50) — `app.hume.ai/evi/configs/...`

@@ -2,6 +2,11 @@
 
 # voice-demo
 
+> **Estado:** 🟢 Vivo — referência principal do projecto, sempre actualizada.
+> **Actualizado:** 2026-09-04
+> **Âmbito:** arquitectura, provedores, env vars, padrões e regras do repo.
+> **Handoff da última sessão:** [docs/handoff-2026-09-04.md](docs/handoff-2026-09-04.md)
+
 Portfolio demo de Raphael Bruno — voice AI agent multilíngue com 6 provedores em paralelo para comparação de pipelines. Branding público: «24/7 Voice Agent» / «Agente de Voz 24/7» (white-label). Stack: Next.js 16 (App Router, Turbopack) + Vercel; Python livekit-agent (Railway — projecto `balanced-appreciation`, serviço **`voice-demo`** — nome enganador, não é o site Next.js); Node twilio-agent (Railway — mesmo projecto, serviço `vivacious-expression`).
 
 ## Provedores
@@ -74,7 +79,7 @@ lib/
   supabase.ts                       # Lazy singletons (anon + service_role)
   health-checks.ts                  # 10 check functions + runAllChecks() — Hume/LiveKit/ElevenLabs/Vapi/Retell/Twilio/GCal/Supabase/Railway/Fly
   resend.ts                         # sendHealthEmail() — daily + alert, via Resend API
-  base-path.ts                      # BASE_PATH = '/ai-agent-voice' (branch feat/ai-agent-voice-basepath)
+  base-path.ts                      # BASE_PATH = '/ai-agent-voice' — já em main
   i18n/dictionaries.ts              # Strings PT + EN (38)
 app/
   status/page.tsx                   # Dashboard admin — estado actual + histórico 30 dias (protegido por cookie)
@@ -107,7 +112,9 @@ twilio-agent/                       # Node.js, ConversationRelay — Railway
 
 **Static prerendering** — `export const dynamic = "force-dynamic"` nas pages. `CallStats` guarda com `if (!process.env.NEXT_PUBLIC_SUPABASE_URL) return null`.
 
-**branch feat/ai-agent-voice-basepath** — `basePath: '/ai-agent-voice'`, `assetPrefix: 'https://voice-demo-navy.vercel.app/ai-agent-voice'`. Não merge para `main` sem portfolio site com rewrite. Nunca `vercel --prod` desta branch.
+**basePath `/ai-agent-voice` está em `main`** — o site real é `www.raphaelbruno.dev/ai-agent-voice/`, servido por rewrite do portfolio. Toda a navegação e todos os `fetch` internos passam por `BASE_PATH` (`lib/base-path.ts`). A branch `feat/ai-agent-voice-basepath` é histórica; o aviso antigo de "não fazer merge" já não se aplica.
+
+**`assetPrefix` só em produção** — `next.config.ts` condiciona-o a `NODE_ENV === "production"`. Se voltar a ficar fixo, o dev local e os previews de PR pedem CSS/JS ao domínio de produção, os hashes de chunk não batem certo e a página **não hidrata** (sintoma: página sem estilos, botões inertes). Já aconteceu uma vez.
 
 ## Environment variables
 
@@ -210,5 +217,13 @@ Commit style: feat(livekit): ... / fix(retell): ... / docs(claude): ...
 
 ## Pendentes
 
-- **PSTN real** — número Twilio ou DIDWW +351 para LiveKit SIP. WebRTC browser funciona sem número. Ver [docs/providers.md](docs/providers.md).
-- **Marketing** — vídeos "The Portfolio", "The Multilingual Customer", "Features showcase". Veo 3.1 via `GEMINI_API_KEY` validado.
+| # | Item | Estado | Bloqueado em |
+|---|---|---|---|
+| 1 | **PR #17 — palco `/livekit`** | 🟡 Aberto, build passa | Verificação numa chamada real (orb a reagir + bolhas do utilizador). Ver [docs/handoff-2026-09-04.md](docs/handoff-2026-09-04.md) |
+| 2 | **PSTN real** | 🟡 Código pronto | Número Twilio ou DIDWW +351 para LiveKit SIP. WebRTC browser funciona sem número. Ver [docs/providers.md](docs/providers.md) |
+| 3 | **Gap #2 — harness de avaliação de conversa** | 🔴 Por começar | Nada. Ver [docs/gaps-analysis-2026-07-16.md](docs/gaps-analysis-2026-07-16.md) |
+| 4 | **Gap #4 — observabilidade profunda** | 🔴 Por começar | Nada |
+| 5 | **Marketing** | 🟡 Em curso | Vídeos "The Portfolio", "The Multilingual Customer", "Features showcase". Veo 3.1 via `GEMINI_API_KEY` validado |
+| 6 | **`AgentNav` transborda** em ecrãs estreitos | 🔴 Por corrigir | Nada. Pré-existente, afecta as 6 páginas |
+
+Gap #1 (latência real por turno) fechado no PR #16.

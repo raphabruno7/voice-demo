@@ -1,36 +1,70 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# voice-demo — 24/7 Voice Agent
 
-## Getting Started
+> **Estado:** 🟢 Vivo — 6 provedores activos em produção.
+> **Actualizado:** 2026-09-04 · **Produção:** https://www.raphaelbruno.dev/ai-agent-voice/
+> **Âmbito:** visão geral e arranque local. Referência completa: [CLAUDE.md](CLAUDE.md) · Handoff corrente: [docs/handoff-2026-09-04.md](docs/handoff-2026-09-04.md)
 
-First, run the development server:
+Demo de portfolio: o **mesmo** agente de voz multilíngue implementado em paralelo sobre seis
+pipelines diferentes, para os comparar lado a lado — latência, qualidade de voz, prosódia e
+comportamento de interrupção. Todos marcam reuniões a sério, no Google Calendar, com
+confirmação por WhatsApp.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Branding público: «24/7 Voice Agent» / «Agente de Voz 24/7» (white-label).
+
+## Provedores
+
+| Provedor | Pipeline | Voz | Página |
+|---|---|---|---|
+| Hume EVI 4-mini | end-to-end pt-PT, prosódia adaptativa | "A Viajante de Alma" | `/` |
+| LiveKit + Gemini Live | `gemini-2.5-flash-native-audio-latest` | Aoede | `/livekit` |
+| ElevenLabs ConvAI | STT + LLM + TTS | Marta (pt-PT) | `/elevenlabs` |
+| Vapi | orquestrador browser — Gemini 2.5 Flash | Sarah (EN) | `/vapi` |
+| Retell AI | orquestrador browser — Gemini 3.0 Flash | Cartesia Cleo (EN) | `/retell` |
+| Twilio ConversationRelay | ConversationRelay + Gemini 2.0 Flash | Polly.Ines-Neural (pt-PT) | `/twilio` |
+
+Config operacional de cada um: [docs/providers.md](docs/providers.md).
+
+## Arquitectura
+
+```
+Next.js 16 (App Router, Turbopack) ──► Vercel        o site e todas as API routes
+livekit-agent/   Python, Gemini Live ──► Railway     agente de voz do /livekit (+ SIP)
+twilio-agent/    Node, ConversationRelay ──► Railway servidor WebSocket do /twilio
+Supabase                                             calls, marcações, health checks, latência
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`lib/book-meeting.ts` é o núcleo partilhado: cria o evento no Google Calendar e envia o
+WhatsApp. Cada provedor tem a sua route com autenticação e parsing próprios.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Arranque local
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm install
+npm run dev     # http://localhost:3000/ai-agent-voice/
+```
 
-## Learn More
+O `basePath` é `/ai-agent-voice` — o URL local leva-o, e o `trailingSlash` importa.
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+# agente Python do /livekit
+cd livekit-agent
+LIVEKIT_URL=… LIVEKIT_API_KEY=… LIVEKIT_API_SECRET=… GEMINI_API_KEY=… python -u agent.py dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Variáveis de ambiente: a tabela completa está em [CLAUDE.md](CLAUDE.md#environment-variables).
+Atenção ao `GEMINI_API_KEY`, que vive em quatro sítios.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Operação
 
-## Deploy on Vercel
+- **`/status`** — dashboard admin: estado actual dos 10 serviços, histórico de 30 dias e
+  latência p50/p95 por turno. Protegido por cookie.
+- **Health check diário** às 07:00 UTC, com email via Resend.
+- **Outbound diário** às 09:30 UTC — confirmação de marcações
+  ([docs/outbound-calls.md](docs/outbound-calls.md), por activar).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Contribuir
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Sempre branch + PR, nunca commit directo em `main`. Push para `main` faz deploy automático na
+Vercel e no Railway.
+
+Estilo de commit: `feat(livekit): …` / `fix(retell): …` / `docs(claude): …`

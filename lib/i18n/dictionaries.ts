@@ -107,6 +107,9 @@ export type Dict = {
       statusListening: string;
       statusThinking: string;
       statusSpeaking: string;
+      transcriptTitle: string;
+      transcriptEmpty: string;
+      errorGeneric: string;
     };
     elevenlabs: {
       callButton: string;
@@ -284,6 +287,9 @@ const pt: Dict = {
       statusListening: "A ouvir…",
       statusThinking: "A processar…",
       statusSpeaking: "A falar…",
+      transcriptTitle: "Transcrição",
+      transcriptEmpty: "A conversa aparece aqui em tempo real.",
+      errorGeneric: "Não foi possível ligar. Tenta outra vez.",
     },
     elevenlabs: {
       callButton: "Falar com o agente — grátis, agora",
@@ -433,6 +439,9 @@ const en: Dict = {
       statusListening: "Listening…",
       statusThinking: "Thinking…",
       statusSpeaking: "Speaking…",
+      transcriptTitle: "Transcript",
+      transcriptEmpty: "The conversation appears here in real time.",
+      errorGeneric: "Couldn't connect. Please try again.",
     },
     elevenlabs: {
       callButton: "Talk to the agent — free, right now",
