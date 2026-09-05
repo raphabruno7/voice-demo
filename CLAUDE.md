@@ -143,9 +143,11 @@ O alias continua a ser um risco real (troca de modelo sem aviso, e leva prosódi
 | `OUTBOUND_TRUNK_ID` / `TRANSFER_RING_TIMEOUT_S` / `TRANSFER_CALLER_ID_NAME` | Python agent — attended SIP transfer |
 | `ARCUS_SUPABASE_URL` / `ARCUS_SUPABASE_KEY` / `ARCUS_ORG_ID` | Python agent — Arcus CRM |
 | `METRICS_ENDPOINT` | Python agent — POST de latência por turno para `/api/livekit/metrics` (reutiliza `WEBHOOK_SECRET` como `x-metrics-secret`) |
-| `GEMINI_REALTIME_MODEL` | Python agent — modelo realtime. Default `gemini-2.5-flash-native-audio-preview-12-2025` (versão fixa). Para avaliar o 3.1: `gemini-3.1-flash-live-preview` |
+| `GEMINI_REALTIME_MODEL` | Python agent — modelo realtime. Default `gemini-2.5-flash-native-audio-latest` — o único valor verificado a aceitar a config de áudio deste agente (ver "Modelo realtime" na secção Key patterns). Para experimentar o 3.1: `gemini-3.1-flash-live-preview`, mas testar numa chamada real primeiro |
 | `VAD_SILENCE_MS` | Python agent — silêncio para declarar fim de fala. Default `400`. Entra em **todos** os turnos: subir reduz cortes a meio da frase, descer reduz latência percebida |
 
+> ⚠️ **`ARCUS_SUPABASE_URL` no Railway está guardada sem `https://`** — httpx recusa pedidos sem protocolo explícito (`UnsupportedProtocol`), e o lookup no Arcus CRM falhava em silêncio em toda chamada (apanhado e logado, nunca derrubava a sessão). `arcus_lookup.py` normaliza isto agora, mas vale corrigir a variável na origem quando for a próxima vez a mexer nela.
+>
 > ⚠️ **`GEMINI_API_KEY` vive em 4 sítios** (ver acima) — se rodares a key (ex: projecto GCP suspenso por billing), actualiza todos ou o `/livekit` fica com áudio em silêncio mesmo que o health check dê `ok`. O serviço Railway `voice-demo` (dentro do projecto `balanced-appreciation`) só aplica a variável nova depois de um **Deploy manual** — mudar o valor não reinicia o processo sozinho.
 
 ### ElevenLabs

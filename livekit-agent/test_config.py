@@ -11,6 +11,7 @@ from pathlib import Path
 
 HERE = Path(__file__).parent
 SRC = (HERE / "agent.py").read_text()
+ARCUS_SRC = (HERE / "arcus_lookup.py").read_text()
 PROMPT = (HERE / "system-prompt.txt").read_text()
 
 
@@ -81,6 +82,24 @@ def check_metrics_url_gets_trailing_slash():
 
     assert normaliza("https://x/api/livekit/metrics") == "https://x/api/livekit/metrics/"
     assert normaliza("https://x/api/livekit/metrics/") == "https://x/api/livekit/metrics/"
+    assert normaliza("") == ""
+
+
+def check_arcus_url_gets_protocol():
+    """ARCUS_SUPABASE_URL no Railway está guardada sem "https://" — httpx
+    recusa o pedido com UnsupportedProtocol, e lookup_by_company_name falhava
+    em toda chamada (apanhado e logado, nunca derrubava a sessão, mas o
+    lookup no CRM nunca funcionava)."""
+    assert 'startswith(("http://", "https://"))' in ARCUS_SRC, (
+        "a normalização de protocolo do ARCUS_SUPABASE_URL desapareceu"
+    )
+
+    def normaliza(raw):
+        return raw if not raw or raw.startswith(("http://", "https://")) else f"https://{raw}"
+
+    assert normaliza("xyz.supabase.co") == "https://xyz.supabase.co"
+    assert normaliza("https://xyz.supabase.co") == "https://xyz.supabase.co"
+    assert normaliza("http://xyz.supabase.co") == "http://xyz.supabase.co"
     assert normaliza("") == ""
 
 

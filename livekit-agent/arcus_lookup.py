@@ -9,7 +9,14 @@ import httpx
 
 logger = logging.getLogger("ana-agent")
 
-ARCUS_URL = os.environ.get("ARCUS_SUPABASE_URL", "")
+_arcus_raw = os.environ.get("ARCUS_SUPABASE_URL", "")
+# httpx exige protocolo explícito (UnsupportedProtocol se faltar); a variável no
+# Railway está guardada sem o "https://" e isso derrubava todo lookup em silêncio.
+ARCUS_URL = (
+    _arcus_raw
+    if not _arcus_raw or _arcus_raw.startswith(("http://", "https://"))
+    else f"https://{_arcus_raw}"
+)
 ARCUS_KEY = os.environ.get("ARCUS_SUPABASE_KEY", "")
 ORG_ID = os.environ.get("ARCUS_ORG_ID", "c4669ad5-e6b2-41ed-9c51-c09dfbec17f9")
 
