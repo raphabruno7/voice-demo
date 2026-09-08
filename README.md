@@ -1,4 +1,4 @@
-# voice-demo — 24/7 Voice Agent
+# Voice Agent Stacks — 24/7 Voice Agent
 
 > **Estado:** 🟢 Vivo — 6 provedores activos em produção.
 > **Actualizado:** 2026-09-04 · **Produção:** https://www.raphaelbruno.dev/ai-agent-voice/
