@@ -1,6 +1,6 @@
 @AGENTS.md
 
-# voice-demo
+# voice-agent-stacks
 
 > **Estado:** 🟢 Vivo — referência principal do projecto, sempre actualizada.
 > **Actualizado:** 2026-09-04
@@ -226,7 +226,7 @@ LIVEKIT_URL=... LIVEKIT_API_KEY=... LIVEKIT_API_SECRET=... GEMINI_API_KEY=... py
 ## Git
 
 ```
-Remote: https://github.com/raphabruno7/voice-demo.git
+Remote: https://github.com/raphabruno7/voice-agent-stacks.git
 Branch: main — sempre branch + PR, nunca commit directo em main
 Commit style: feat(livekit): ... / fix(retell): ... / docs(claude): ...
 ```
